@@ -25,3 +25,146 @@ body {
     text-wrap: balance;
   }
 }
+
+/*************************************
+ *  background  CSS
+ *************************************/
+/* Globální nastavení pro mobilní pozadí */
+
+.bg-mobile {
+  background-image: url("/images/app-image/bg-6.jpeg");
+  background-size: cover;
+  background-position: center;
+}
+
+/* Pro větší obrazovky (od 1024px a výše) nastavíme jiné pozadí */
+@media (min-width: 1024px) {
+  .bg-desktop {
+    background-image: url("/images/app-image/motains.png");
+    background-size: cover;
+    background-position: center;
+  }
+}
+
+.app-container {
+  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #f0a5e0;
+  color: white;
+  min-height: 100vh;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+}
+
+.logo {
+  width: 40px;
+  height: 40px;
+  margin-right: 10px;
+}
+
+.quote-section {
+  background-color: white;
+  color: black;
+  padding: 20px;
+  border-radius: 8px;
+  width: 80%;
+  text-align: center;
+  margin-top: 20px;
+}
+
+.quote {
+  font-size: 1.2em;
+  font-style: italic;
+}
+
+.author {
+  font-size: 0.9em;
+  margin-top: 10px;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 80%;
+  margin-top: 20px;
+}
+
+.goal-progress,
+.module-section,
+.tasks-section {
+  background-color: #333;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  width: 100%;
+  color: white;
+  text-align: center;
+}
+
+.progress-circle {
+  font-size: 2em;
+  margin-top: 10px;
+}
+
+.module-section .progress-bar,
+.tasks-section .progress-bar {
+  background-color: #555;
+  border-radius: 4px;
+  overflow: hidden;
+  height: 10px;
+  margin: 10px 0;
+}
+
+.progress-fill {
+  background-color: #d26bff;
+  height: 100%;
+}
+
+.start-button,
+.show-tasks-button {
+  background-color: #d26bff;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 4px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-around;
+  background-color: #333;
+  width: 100%;
+  padding: 10px 0;
+  position: fixed;
+  bottom: 0;
+}
+
+.footer button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.2em;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .content {
+    width: 90%;
+  }
+
+  .quote-section,
+  .goal-progress,
+  .module-section,
+  .tasks-section {
+    width: 100%;
+  }
+}
