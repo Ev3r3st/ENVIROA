@@ -27,7 +27,7 @@ const Navbar: React.FC = () => {
         <div className="flex space-x-12 text-center justify-center md:justify-start w-full  ">
           <div className="icons">
             <Link
-              href="/home"
+              href="/"
               className="hover:text-pink-300 text-sm flex flex-col items-center"
             >
               <FontAwesomeIcon icon={faHome} className="m-1" />
@@ -36,7 +36,7 @@ const Navbar: React.FC = () => {
           </div>
           <div className="icons">
             <Link
-              href="/home"
+              href="/"
               className="hover:text-pink-300  text-sm flex flex-col items-center"
             >
               <FontAwesomeIcon icon={faChartLine} className="m-1" />

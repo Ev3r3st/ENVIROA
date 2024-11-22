@@ -11,6 +11,7 @@ const LoginPage: React.FC = () => {
     fullName: "",
     address: "",
   });
+  const [error, setError] = useState<string | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -20,12 +21,43 @@ const LoginPage: React.FC = () => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isRegistering) {
-      console.log("Registering:", formData);
-    } else {
-      console.log("Logging in:", formData);
+    setError(null); // Reset error state
+
+    try {
+      // Remove empty fields before sending the request
+      const filteredData = Object.fromEntries(
+        Object.entries(formData).filter(([_, value]) => value !== "")
+      );
+
+      const endpoint = isRegistering
+        ? "http://localhost:3001/api/auth/register"
+        : "http://localhost:3001/api/auth/login"; // Přímý odkaz na BE
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(filteredData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Something went wrong");
+      }
+
+      const data = await response.json();
+      console.log(
+        isRegistering ? "Registration success:" : "Login success:",
+        data
+      );
+
+      // Přesměrování po úspěšném přihlášení nebo registraci
+      if (!isRegistering) {
+        window.location.href = "/dashboard"; // Přesměrování na dashboard
+      }
+    } catch (err: any) {
+      console.error(err.message);
+      setError(err.message || "An unexpected error occurred");
     }
   };
 
@@ -35,6 +67,9 @@ const LoginPage: React.FC = () => {
         <h2 className="text-center text-2xl font-bold">
           {isRegistering ? "Register" : "Login"}
         </h2>
+        {error && (
+          <div className="text-red-500 text-center text-sm">{error}</div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-semibold mb-1">
