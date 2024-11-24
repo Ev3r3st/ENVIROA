@@ -1,8 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { useRouter } from "next/navigation";
 
 const LoginPage: React.FC = () => {
+  const router = useRouter();
   const [isRegistering, setIsRegistering] = useState(false);
   const [formData, setFormData] = useState({
     username: "",
@@ -46,18 +50,44 @@ const LoginPage: React.FC = () => {
       }
 
       const data = await response.json();
-      console.log(
-        isRegistering ? "Registration success:" : "Login success:",
-        data
-      );
 
-      // Přesměrování po úspěšném přihlášení nebo registraci
-      if (!isRegistering) {
-        window.location.href = "/dashboard"; // Přesměrování na dashboard
+      if (!isRegistering && data.access_token) {
+        localStorage.setItem("token", data.access_token);
+        toast.success("Login successful!", {
+          position: "top-center",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
+        setTimeout(() => {
+          router.push("/dashboard");
+        }, 3000);
+      } else {
+        toast.success("Registration successful!", {
+          position: "top-center",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
       }
-    } catch (err: any) {
-      console.error(err.message);
-      setError(err.message || "An unexpected error occurred");
+    } catch (err: unknown) {
+      console.error((err as Error).message);
+      setError((err as Error).message || "An unexpected error occurred");
+      toast.error((err as Error).message || "An unexpected error occurred", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
     }
   };
 
@@ -159,6 +189,7 @@ const LoginPage: React.FC = () => {
           {isRegistering ? "Switch to Login" : "Switch to Register"}
         </button>
       </div>
+      <ToastContainer position="top-center" />
     </div>
   );
 };
