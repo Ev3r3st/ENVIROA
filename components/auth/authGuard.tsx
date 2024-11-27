@@ -1,21 +1,27 @@
 // authGuard.tsx
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 
 const useAuthGuard = () => {
   const router = useRouter();
+  const [authorized, setAuthorized] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Kontrola, zda je token uložen v Local Storage
-    const token = localStorage.getItem("token");
+    const token = Cookies.get("token");
 
     if (!token) {
-      // Pokud není token přítomen, přesměrujeme na přihlašovací stránku
-      router.push("/");
+      router.replace("/"); // Používáme replace pro rychlejší přesměrování
+    } else {
+      setAuthorized(true);
     }
+    setLoading(false);
   }, [router]);
+
+  return { authorized, loading };
 };
 
 export default useAuthGuard;

@@ -1,184 +1,145 @@
-import Link from "next/link";
+// page.tsx
+"use client";
+
 import React from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faClock } from "@fortawesome/free-solid-svg-icons";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
 
-export default function Home() {
+const HomePage: React.FC = () => {
+  const router = useRouter();
+
+  const handleLoginRedirect = () => {
+    router.push("/login");
+  };
+
   return (
-    <div className="flex flex-col items-center min-h-screen text-white font-sans mb-20 md:mt-20">
-      <div className="w-full max-w-4xl mx-auto p-2">
-        <div className="grid grid-cols-2 items-center">
-          {/* Left section with logo and text */}
-          <div className="flex items-center bg-white text-black rounded-full p-1 px-3 justify-self-start">
-            <img
-              src="/images/app-image/marenas-logo-octo.jpg"
-              alt="Logo"
-              className="w-10 h-10 rounded-full mr-2"
-            />
-            <h1 className="text-xl font-bold">EVO</h1>
-          </div>
-
-          {/* Right section with user icon */}
-          <div className="flex items-center justify-self-end">
-            <div className="bg-gray-200 rounded-full w-10 h-10 flex items-center justify-center">
-              <span className="text-black font-bold">U</span>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gradient-to-b from-purple-800 to-indigo-900 flex flex-col items-center justify-start p-10 space-y-20">
+      {/* Hero Section */}
+      <div className="bg-white text-black rounded-xl shadow-2xl w-full max-w-7xl p-16 space-y-10 text-center">
+        <h1 className="text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-red-500 to-pink-600 animate-pulse">
+          Unlock Your Potential with Our Revolutionary App
+        </h1>
+        <p className="text-2xl text-gray-800 leading-relaxed">
+          Imagine having all the tools you need to transform your life at your
+          fingertips. Our app empowers you to achieve your goals, optimize your
+          productivity, and take charge of your self-development. Dive in and
+          discover how your ambitions can become reality.
+        </p>
+        <div className="flex justify-center">
+          <button
+            onClick={handleLoginRedirect}
+            className="px-12 py-6 bg-gradient-to-r from-blue-600 via-purple-700 to-indigo-800 hover:from-blue-700 hover:to-indigo-900 rounded-full text-3xl font-bold text-white transition-transform transform hover:scale-110 shadow-xl"
+          >
+            Get Started
+          </button>
         </div>
+      </div>
 
-        <section className="bg-white text-black p-4 rounded-lg w-full text-center my-4">
-          <p className="text-2xl italic px-2">
-            “Dosáhněte vašeho cíle rychleji a úspěšněji.”
-          </p>
-          <p className="mt-2 text-sm">Krotil Matyáš</p>
-        </section>
-
-        <div className="flex flex-col items-center space-y-4 my-4 w-full">
-          {/* Wrapper div with responsive flex layout */}
-          <div className="flex gap-4 justify-center w-full">
-            {/* First Card - Goals */}
-            <div className="bg-gray-800 rounded-lg p-4 w-1/2 sm:w-1/2 md:w-1/2 lg:w-1/2 text-center">
-              <h2 className="text-lg font-semibold">Goals</h2>
-              <div className="relative flex items-center justify-center mt-4">
-                <svg className="w-24 h-24">
-                  <circle
-                    cx="50%"
-                    cy="50%"
-                    r="45%"
-                    strokeWidth="10"
-                    fill="none"
-                    stroke="currentColor"
-                    className="text-gray-600"
-                  />
-                  <circle
-                    cx="50%"
-                    cy="50%"
-                    r="45%"
-                    strokeWidth="10"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeDasharray="283"
-                    strokeDashoffset={283 - (283 * 50) / 100}
-                    strokeLinecap="round"
-                    transform="rotate(-90 47.5 48)"
-                    className="text-purple-500"
-                  />
-                </svg>
-                <span className="absolute text-2xl font-bold text-white">
-                  50 %
-                </span>
-              </div>
-            </div>
-
-            {/* Second Card - Day Streaks */}
-            <div className="bg-gray-800 rounded-lg p-4 w-1/2 sm:w-1/2 md:w-1/2 lg:w-1/2 text-center">
-              <h2 className="text-lg font-semibold">Day Streaks</h2>
-              <div className="flex justify-center gap-2 mt-4">
-                {[...Array(8)].map((_, index) => (
-                  <div
-                    key={index}
-                    className={`w-8 h-8 rounded-full ${
-                      index < 4 ? "bg-green-400" : "bg-gray-600"
-                    }`}
-                  ></div>
-                ))}
-              </div>
-              <div className="w-full bg-gray-600 rounded-full h-2 mt-4">
-                <div
-                  className="bg-purple-500 h-2 rounded-full"
-                  style={{ width: "70%" }}
-                ></div>
-              </div>
-              <button className="mt-4 px-4 py-2 bg-purple-500 text-white rounded">
-                Keep it up!
-              </button>
-            </div>
+      {/* Features Section */}
+      <div className="w-full max-w-7xl space-y-16">
+        <h2 className="text-5xl font-bold text-white text-center">
+          Features That Set You Apart
+        </h2>
+        <div className="flex flex-wrap justify-around space-y-12 sm:space-y-0">
+          <div className="bg-white rounded-xl shadow-lg p-10 w-full sm:w-1/3 m-6 hover:shadow-2xl transition-shadow duration-300">
+            <Image
+              src="/images/productivity.png"
+              alt="Productivity Tools"
+              width={120}
+              height={120}
+              className="mx-auto mb-6"
+            />
+            <h3 className="text-3xl font-bold text-center mb-4">
+              Productivity Tools
+            </h3>
+            <p className="text-gray-700 text-center text-lg">
+              Boost your productivity with cutting-edge tools that keep you
+              focused and help you achieve more.
+            </p>
           </div>
-          <section className="ActualStudyModel w-full">
-            <div className="bg-gray-800 rounded-lg p-4 w-full text-center">
-              <h2 className="text-lg font-semibold border-b border-gray-600 pb-2">
-                Modules in Progress
-              </h2>
-              {/* Module Title */}
-              <p className="font-medium mt-2">Meditation for Success</p>
-              <p className="text-sm text-gray-400">Lekce 2: Concentration</p>
-              {/* Motivational Quotes */}
-              <div className="mt-4 p-3 bg-gray-700 rounded-lg">
-                <div className="flex text-center pb-1">
-                  <h3 className="ml-3">#2 Concentration</h3>
-                  <div className="pl-2 text-center flex  flex justify-end ml-auto mr-3">
-                    <FontAwesomeIcon
-                      icon={faClock}
-                      className="text-gray-400 w-[22px] "
-                    />{" "}
-                    <h3 className="px-1">8 min</h3>
-                  </div>
-                </div>
-                <p className="text-xs text-gray-400 italic">
-                  začátek psaní, pro lekci kterou si každý vyzkouší atd, začátek
-                  psaní, pro lekci kterou si každý vyzkouší atd, začátek psaní,
-                  pro lekci kterou si každý vyzkouší atd, začátek psaní, pro
-                  lekci kterou si každý....
-                </p>
-              </div>
-              {/* Action Button */}
-              <Link
-                href="/educationPage"
-                className="mt-5 px-4 py-2 bg-purple-500 text-white rounded block text-center"
-              >
-                Start Learning
-              </Link>{" "}
-              {/* Progress Bar */}
-              <div className="w-full bg-gray-600 rounded-full h-2 mt-5">
-                <div
-                  className="bg-purple-500 h-2 rounded-full"
-                  style={{ width: "50%" }}
-                ></div>
-              </div>
-              <p className="text-sm text-gray-400 mt-1">50% Completed</p>
-              {/* Encouragement Text */}
-              {/*<div className="mt-4 text-sm text-gray-400">
-                <h4>Nadpis Lekce</h4>
-                <p>začátek psaní, pro lekci kterou si každý vyzkouší atd</p>
-              </div>*/}
-              {/* Next Module Preview */}
-              <div className="mt-5 p-3 bg-gray-700 rounded-lg text-center">
-                <h3 className="font-semibold text-sm text-white">
-                  Upcoming Module:
-                </h3>
-                <p className="text-xs text-gray-400">
-                  Mindfulness for Productivity
-                </p>
-              </div>
-            </div>
-          </section>
-
-          <div className="bg-gray-800 rounded-lg p-4 w-full text-center">
-            <h2 className="text-lg font-semibold">Today tasks</h2>
-            <div className="mt-4">
-              <p>Goal #1</p>
-              <div className="w-full bg-gray-600 rounded-full h-2 mt-1">
-                <div
-                  className="bg-purple-500 h-2 rounded-full"
-                  style={{ width: "40%" }}
-                ></div>
-              </div>
-            </div>
-            <div className="mt-4">
-              <p>Goal #2</p>
-              <div className="w-full bg-gray-600 rounded-full h-2 mt-1">
-                <div
-                  className="bg-purple-500 h-2 rounded-full"
-                  style={{ width: "70%" }}
-                ></div>
-              </div>
-            </div>
-            <button className="mt-4 px-4 py-2 bg-purple-500 text-white rounded">
-              Show tasks
-            </button>
+          <div className="bg-white rounded-xl shadow-lg p-10 w-full sm:w-1/3 m-6 hover:shadow-2xl transition-shadow duration-300">
+            <Image
+              src="/images/goal_tracking.png"
+              alt="Goal Tracking"
+              width={120}
+              height={120}
+              className="mx-auto mb-6"
+            />
+            <h3 className="text-3xl font-bold text-center mb-4">
+              Goal Tracking
+            </h3>
+            <p className="text-gray-700 text-center text-lg">
+              Set, track, and achieve your goals effectively with our innovative
+              and easy-to-use tracking system.
+            </p>
+          </div>
+          <div className="bg-white rounded-xl shadow-lg p-10 w-full sm:w-1/3 m-6 hover:shadow-2xl transition-shadow duration-300">
+            <Image
+              src="/images/self_improvement.png"
+              alt="Self Improvement"
+              width={120}
+              height={120}
+              className="mx-auto mb-6"
+            />
+            <h3 className="text-3xl font-bold text-center mb-4">
+              Self Improvement
+            </h3>
+            <p className="text-gray-700 text-center text-lg">
+              Access tailored resources to help you grow both personally and
+              professionally, and become the best version of yourself.
+            </p>
           </div>
         </div>
       </div>
+
+      {/* Testimonials Section */}
+      <div className="w-full max-w-7xl space-y-16">
+        <h2 className="text-5xl font-bold text-white text-center">
+          What Our Users Say
+        </h2>
+        <div className="flex flex-wrap justify-around space-y-12 sm:space-y-0">
+          <div className="bg-white rounded-xl shadow-lg p-10 w-full sm:w-1/3 m-6 hover:shadow-2xl transition-shadow duration-300">
+            <p className="text-gray-700 italic mb-6">
+              "This app has completely transformed how I set and achieve my
+              goals. Highly recommended!"
+            </p>
+            <h4 className="text-2xl font-bold text-center">- Alex Johnson</h4>
+          </div>
+          <div className="bg-white rounded-xl shadow-lg p-10 w-full sm:w-1/3 m-6 hover:shadow-2xl transition-shadow duration-300">
+            <p className="text-gray-700 italic mb-6">
+              "I love the productivity tools. They help me stay focused and
+              organized every day."
+            </p>
+            <h4 className="text-2xl font-bold text-center">- Maria Lopez</h4>
+          </div>
+          <div className="bg-white rounded-xl shadow-lg p-10 w-full sm:w-1/3 m-6 hover:shadow-2xl transition-shadow duration-300">
+            <p className="text-gray-700 italic mb-6">
+              "The self-improvement resources are fantastic. I feel more
+              confident and motivated than ever."
+            </p>
+            <h4 className="text-2xl font-bold text-center">- James Carter</h4>
+          </div>
+        </div>
+      </div>
+
+      {/* Call to Action Section */}
+      <div className="w-full max-w-6xl bg-white rounded-xl shadow-2xl p-16 space-y-10 text-center">
+        <h2 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500">
+          Ready to Take the Next Step?
+        </h2>
+        <p className="text-2xl text-gray-800 leading-relaxed">
+          Join our growing community of driven individuals and start turning
+          your dreams into reality today.
+        </p>
+        <button
+          onClick={handleLoginRedirect}
+          className="px-16 py-6 bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-700 hover:to-blue-800 rounded-full text-3xl font-bold text-white transition-transform transform hover:scale-110 shadow-xl"
+        >
+          Get Started Now
+        </button>
+      </div>
     </div>
   );
-}
+};
+
+export default HomePage;

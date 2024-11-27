@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 
 const LoginPage: React.FC = () => {
   const router = useRouter();
@@ -50,9 +51,12 @@ const LoginPage: React.FC = () => {
       }
 
       const data = await response.json();
-
       if (!isRegistering && data.access_token) {
-        localStorage.setItem("token", data.access_token);
+        // Uložení tokenu do cookies
+        Cookies.set("token", data.access_token, {
+          expires: 7,
+          sameSite: "Strict",
+        });
         toast.success("Login successful!", {
           position: "top-center",
           autoClose: 3000,

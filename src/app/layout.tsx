@@ -36,7 +36,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-cover bg-center min-h-screen bg-mobile lg:bg-desktop`}
       >
-        <nav>
+        <nav className=" md:pb-20">
           <Navbar />
         </nav>
         <main>{children}</main>
