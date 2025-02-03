@@ -57,15 +57,15 @@ const LoginPage: React.FC = () => {
           expires: 7,
           sameSite: "Strict",
         });
+
+        // Uložení tokenu do localStorage
+        localStorage.setItem("access_token", data.access_token);
+
         toast.success("Login successful!", {
           position: "top-center",
           autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
         });
+
         setTimeout(() => {
           router.push("/dashboard");
         }, 3000);
@@ -73,11 +73,6 @@ const LoginPage: React.FC = () => {
         toast.success("Registration successful!", {
           position: "top-center",
           autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
         });
       }
     } catch (err: unknown) {
@@ -86,11 +81,6 @@ const LoginPage: React.FC = () => {
       toast.error((err as Error).message || "An unexpected error occurred", {
         position: "top-right",
         autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
       });
     }
   };
@@ -115,7 +105,7 @@ const LoginPage: React.FC = () => {
               value={formData.username}
               onChange={handleInputChange}
               required
-              className="w-full px-4 py-2 bg-gray-700 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-4 py-2 bg-gray-700 rounded-md text-white"
               placeholder="Enter your username"
             />
           </div>
@@ -129,7 +119,7 @@ const LoginPage: React.FC = () => {
               value={formData.password}
               onChange={handleInputChange}
               required
-              className="w-full px-4 py-2 bg-gray-700 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-4 py-2 bg-gray-700 rounded-md text-white"
               placeholder="Enter your password"
             />
           </div>
@@ -145,7 +135,7 @@ const LoginPage: React.FC = () => {
                   value={formData.email}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-2 bg-gray-700 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-2 bg-gray-700 rounded-md text-white"
                   placeholder="Enter your email"
                 />
               </div>
@@ -159,7 +149,7 @@ const LoginPage: React.FC = () => {
                   value={formData.fullName}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-2 bg-gray-700 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-2 bg-gray-700 rounded-md text-white"
                   placeholder="Enter your full name"
                 />
               </div>
@@ -173,7 +163,7 @@ const LoginPage: React.FC = () => {
                   value={formData.address}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-2 bg-gray-700 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-2 bg-gray-700 rounded-md text-white"
                   placeholder="Enter your address"
                 />
               </div>

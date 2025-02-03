@@ -1,19 +1,17 @@
-// authRedirect.tsx
 "use client";
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 
 const useAuthRedirect = () => {
   const router = useRouter();
 
   useEffect(() => {
-    // Kontrola, zda je token uložen v Local Storage
-    const token = localStorage.getItem("token");
+    const token = Cookies.get("token");
 
     if (token) {
-      // Pokud token je přítomen, přesměrujeme na dashboard
-      router.push("/dashboard");
+      router.push("/dashboard"); // Přesměrování na dashboard, pokud token existuje
     }
   }, [router]);
 };

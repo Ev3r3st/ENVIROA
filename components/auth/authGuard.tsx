@@ -1,4 +1,3 @@
-// authGuard.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -14,7 +13,7 @@ const useAuthGuard = () => {
     const token = Cookies.get("token");
 
     if (!token) {
-      router.replace("/"); // Používáme replace pro rychlejší přesměrování
+      router.replace("/"); // Přesměrování na přihlašovací stránku, pokud token chybí
     } else {
       setAuthorized(true);
     }

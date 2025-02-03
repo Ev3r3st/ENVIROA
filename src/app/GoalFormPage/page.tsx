@@ -3,6 +3,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 
 const GoalFormPage: React.FC = () => {
   const router = useRouter();
@@ -32,8 +33,15 @@ const GoalFormPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem("access_token"); // Získej JWT token z localStorage
-      const response = await fetch("http://localhost:3001/api/goals", {
+      const token = Cookies.get("token"); // Čtení tokenu z cookies
+      console.log("JWT Token:", token); // Logování tokenu
+      console.log("FormData:", formData);
+
+      if (!token) {
+        throw new Error("No token found in cookies");
+      }
+
+      const response = await fetch("http://localhost:3001/api/api/goals", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -43,12 +51,14 @@ const GoalFormPage: React.FC = () => {
       });
 
       if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Response error:", errorData);
         throw new Error("Failed to create goal");
       }
 
       const data = await response.json();
       console.log("Goal created:", data);
-      router.push("/dashboard"); // Přesměrování po úspěšném vytvoření cíle
+      router.push("/dashboard");
     } catch (error) {
       console.error("Error:", error);
     }
