@@ -1,4 +1,3 @@
-// page.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -8,13 +7,13 @@ import Cookies from "js-cookie";
 const GoalFormPage: React.FC = () => {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    goalName: "",
+    goal_name: "",
     reason: "",
     destination: "",
-    newSelf: "",
-    dailyAction: "",
-    dailyLearning: "",
-    dailyVisualization: "",
+    new_self: "",
+    daily_action: "",
+    daily_learning: "",
+    daily_visualization: "",
     duration: "",
   });
 
@@ -41,13 +40,29 @@ const GoalFormPage: React.FC = () => {
         throw new Error("No token found in cookies");
       }
 
+      // Kontrola, zda jsou všechna pole vyplněna
+      for (const [key, value] of Object.entries(formData)) {
+        if (!value) {
+          throw new Error(`Field ${key} is missing`);
+        }
+      }
+
       const response = await fetch("http://localhost:3001/api/api/goals", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          goal_name: formData.goal_name,
+          reason: formData.reason,
+          destination: formData.destination,
+          new_self: formData.new_self,
+          daily_action: formData.daily_action,
+          daily_learning: formData.daily_learning,
+          daily_visualization: formData.daily_visualization,
+          duration: parseInt(formData.duration, 10),
+        }),
       });
 
       if (!response.ok) {
@@ -63,7 +78,6 @@ const GoalFormPage: React.FC = () => {
       console.error("Error:", error);
     }
   };
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-500 via-purple-600 to-red-500 flex items-center justify-center py-5 px-3 pb-[100px]">
       <div className="bg-white text-black rounded-3xl shadow-2xl w-full max-w-5xl pt-12 pb-12 space-y-16">
@@ -87,8 +101,8 @@ const GoalFormPage: React.FC = () => {
               <div className="space-y-6">
                 <input
                   type="text"
-                  name="goalName"
-                  value={formData.goalName}
+                  name="goal_name"
+                  value={formData.goal_name}
                   onChange={handleInputChange}
                   required
                   className="w-full px-5 py-3 bg-gray-100 rounded-lg text-gray-800 focus:outline-none focus:ring-4 focus:ring-blue-500"
@@ -275,14 +289,14 @@ const GoalFormPage: React.FC = () => {
                 4
               </div>
               <h2 className="text-xl md:text-3xl font-bold">
-                Definujte své nové já -Já 2.0
+                Definujte své nové já -Já 2.0y
               </h2>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2gap-1 md:gap-8 space-y-6 lg:space-y-0">
               <div className="space-y-6">
                 <textarea
-                  name="newSelf"
-                  value={formData.newSelf}
+                  name="new_self"
+                  value={formData.new_self}
                   onChange={handleInputChange}
                   required
                   className="w-full px-5 py-3 bg-gray-100 rounded-lg text-gray-800 focus:outline-none focus:ring-4 focus:ring-blue-500"
@@ -397,8 +411,8 @@ const GoalFormPage: React.FC = () => {
                     </label>
                     <input
                       type="text"
-                      name="dailyAction"
-                      value={formData.dailyAction}
+                      name="daily_action"
+                      value={formData.daily_action}
                       onChange={handleInputChange}
                       required
                       className="w-full px-5 py-3 bg-gray-100 rounded-lg text-gray-800 focus:outline-none focus:ring-4 focus:ring-blue-500"
@@ -411,8 +425,8 @@ const GoalFormPage: React.FC = () => {
                     </label>
                     <input
                       type="text"
-                      name="dailyLearning"
-                      value={formData.dailyLearning}
+                      name="daily_learning"
+                      value={formData.daily_learning}
                       onChange={handleInputChange}
                       required
                       className="w-full px-5 py-3 bg-gray-100 rounded-lg text-gray-800 focus:outline-none focus:ring-4 focus:ring-blue-500"
@@ -425,8 +439,8 @@ const GoalFormPage: React.FC = () => {
                     </label>
                     <input
                       type="text"
-                      name="dailyVisualization"
-                      value={formData.dailyVisualization}
+                      name="daily_visualization"
+                      value={formData.daily_visualization}
                       onChange={handleInputChange}
                       required
                       className="w-full px-5 py-3 bg-gray-100 rounded-lg text-gray-800 focus:outline-none focus:ring-4 focus:ring-blue-500"

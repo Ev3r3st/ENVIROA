@@ -13,7 +13,7 @@ const LoginPage: React.FC = () => {
     username: "",
     password: "",
     email: "",
-    fullName: "",
+    fullname: "",
     address: "",
   });
   const [error, setError] = useState<string | null>(null);
@@ -145,8 +145,8 @@ const LoginPage: React.FC = () => {
                 </label>
                 <input
                   type="text"
-                  name="fullName"
-                  value={formData.fullName}
+                  name="fullname"
+                  value={formData.fullname}
                   onChange={handleInputChange}
                   required
                   className="w-full px-4 py-2 bg-gray-700 rounded-md text-white"
