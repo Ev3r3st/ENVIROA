@@ -1,13 +1,15 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faClock } from "@fortawesome/free-solid-svg-icons";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 
-// Definice rozhraní pro jeden cíl
+// ========== Rozhraní ==========
+
+// Struktura cíle z backendu (včetně daily_action atd.)
 interface Goal {
   id: number;
   goal_name: string;
@@ -20,66 +22,88 @@ interface Goal {
   duration: number;
 }
 
-// Definice rozhraní pro úkol
+// Struktura úkolu pro vnitřní logiku checkboxů
 interface Task {
   id: number;
   name: string;
   completed: boolean;
 }
 
-// Komponenta, která se stará o úkoly (tasks) pro jeden konkrétní cíl
-const GoalTasks: React.FC<{ goal: Goal }> = ({ goal }) => {
-  // Vytvoříme úkoly s předdefinovanými hodnotami
+// Struktura progressu z tabulky "Progress"
+interface Progress {
+  id: number;
+  userId: number;
+  goalId: number;
+  completedDays: number;
+  lastCompletionDate: string | null;
+  streak: number;
+}
+
+// ========== Komponenta GoalTasks ==========
+// Slouží k zobrazení úkolů pro jeden cíl (3 checkboxy).
+// Pokud uživatel všechny 3 splní, zavolá onComplete(goal.id).
+const GoalTasks: React.FC<{
+  goal: Goal;
+  onComplete: (goalId: number) => void;
+}> = ({ goal, onComplete }) => {
+  // Vytvoříme lokální "tasks" pro cvičení, učení, vizualizaci
   const [tasks, setTasks] = useState<Task[]>([
     { id: 1, name: goal.daily_action, completed: false },
     { id: 2, name: goal.daily_learning, completed: false },
     { id: 3, name: goal.daily_visualization, completed: false },
   ]);
 
-  // Výpočet pokroku
-  const completedTasks = tasks.filter((task) => task.completed).length;
-  const totalTasks = tasks.length;
-  const progress = (completedTasks / totalTasks) * 100;
-  const isCompleted = progress === 100;
+  // Kdykoli se mění tasks, zkontroluj, zda jsou všechny splněné
+  useEffect(() => {
+    const allDone = tasks.every((task) => task.completed);
+    if (allDone) {
+      onComplete(goal.id);
+    }
+  }, [tasks, goal.id, onComplete]);
 
-  // Funkce pro změnu stavu úkolu
+  // Přepínání stavu konkrétního tasku
   const toggleTaskCompletion = (taskId: number) => {
     setTasks((prevTasks) =>
-      prevTasks.map((task) =>
-        task.id === taskId ? { ...task, completed: !task.completed } : task
+      prevTasks.map((t) =>
+        t.id === taskId ? { ...t, completed: !t.completed } : t
       )
     );
+  };
+
+  // Výpočet lokálního progressu (3 checkboxy => 0%, 33%, 66%, 100%)
+  const completedCount = tasks.filter((t) => t.completed).length;
+  const totalTasks = tasks.length; // 3
+  const progressPercent = (completedCount / totalTasks) * 100;
+  const isCompleted = progressPercent === 100;
+
+  // Definice emoji pro jednotlivé typy úkolů
+  const emojiMap = {
+    1: { completed: "✅", notCompleted: "💪🏼" },
+    2: { completed: "✅", notCompleted: "📚" },
+    3: { completed: "✅", notCompleted: "🧘‍♂️" },
   };
 
   return (
     <div key={goal.id} className="mt-6 text-left">
       <h3 className="text-white font-medium">{goal.goal_name}</h3>
 
-      {/* Úkoly s moderním custom checkboxem a individuálními emoji */}
+      {/* Checkboxy úkolů */}
       <div className="mt-4">
         {tasks.map((task) => {
-          // Definice emoji pro jednotlivé typy úkolů:
-          const emojiMap = {
-            1: { completed: "✅", notCompleted: "💪🏼" },
-            2: { completed: "✅", notCompleted: "📚" },
-            3: { completed: "✅", notCompleted: "🧘‍♂️" },
-          };
-
-            const emoji = task.completed
+          // Dynamicky vybereme emoji pro completed/notCompleted
+          const emoji = task.completed
             ? emojiMap[task.id as keyof typeof emojiMap].completed
             : emojiMap[task.id as keyof typeof emojiMap].notCompleted;
 
           return (
             <div key={task.id} className="flex items-center mt-2">
               <label className="inline-flex items-center cursor-pointer">
-                {/* Skrytý nativní checkbox */}
                 <input
                   type="checkbox"
                   checked={task.completed}
                   onChange={() => toggleTaskCompletion(task.id)}
                   className="sr-only peer"
                 />
-                {/* Vlastní vizuální checkbox */}
                 <div className="w-6 h-6 flex items-center justify-center border-2 border-gray-300 rounded-md transition-all duration-300 peer-checked:bg-purple-500 peer-checked:border-purple-500">
                   <svg
                     className="hidden w-4 h-4 text-white peer-checked:block"
@@ -95,7 +119,6 @@ const GoalTasks: React.FC<{ goal: Goal }> = ({ goal }) => {
                   </svg>
                 </div>
               </label>
-              {/* Text úkolu s odsaděním a individuálním emoji */}
               <span className="ml-3 text-lg select-none transition-all duration-300 ease-in-out">
                 {emoji} {task.name}
               </span>
@@ -104,27 +127,30 @@ const GoalTasks: React.FC<{ goal: Goal }> = ({ goal }) => {
         })}
       </div>
 
-      {/* Progress Bar - Celkový postup */}
+      {/* Progress Bar (0% -> 100% pro tyto tři úkoly) */}
       <div className="w-full bg-gray-600 rounded-full h-2 mt-4">
         <div
           className={`h-2 rounded-full transition-all duration-300 ${
             isCompleted ? "bg-green-500" : "bg-purple-500"
           }`}
-          style={{ width: `${progress}%` }}
+          style={{ width: `${progressPercent}%` }}
         ></div>
       </div>
     </div>
   );
 };
 
+// ========== Hlavní komponenta DashboardPage ==========
+
 const DashboardPage: React.FC = () => {
   const router = useRouter();
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [progress, setProgress] = useState<Progress[]>([]); // progress z DB
   const [loading, setLoading] = useState(true);
 
+  // 1) Načítáme seznam cílů a progress z DB
   useEffect(() => {
-    const fetchGoals = async () => {
-      // Ověření tokenu
+    const fetchAllData = async () => {
       const token = Cookies.get("token");
       if (!token) {
         router.replace("/login");
@@ -132,28 +158,93 @@ const DashboardPage: React.FC = () => {
       }
 
       try {
-        const response = await fetch("http://localhost:3001/api/api/goals", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        // Zavoláme /api/goals a /api/progress
+        const [resGoals, resProgress] = await Promise.all([
+          fetch("http://localhost:3001/api/api/goals", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+          fetch("http://localhost:3001/api/api/progress", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+        ]);
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch goals");
+        if (!resGoals.ok || !resProgress.ok) {
+          throw new Error("Failed to fetch data");
         }
 
-        const data = await response.json();
-        setGoals(data);
+        const [goalsData, progressData] = await Promise.all([
+          resGoals.json(),
+          resProgress.json(),
+        ]);
+
+        setGoals(goalsData);
+        setProgress(progressData);
       } catch (error) {
-        console.error("Error fetching goals:", error);
+        console.error("Error fetching goals or progress:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchGoals();
+    fetchAllData();
   }, [router]);
 
+  // 2) Callback, když se uživatel dokončí denní úkoly pro 1 cíl
+  const handleDailyTasksComplete = useCallback(
+    async (goalId: number) => {
+      try {
+        const token = Cookies.get("token");
+        if (!token) return;
+
+        // Zavoláme POST /api/progress/:goalId/complete
+        const res = await fetch(`http://localhost:3001/api/api/progress/${goalId}/complete`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!res.ok) {
+          throw new Error("Failed to complete daily tasks");
+        }
+        // Vrátí aktualizovaný záznam progressu
+        const updatedProgress: Progress = await res.json();
+
+        // Pokud progress pro goalId neexistoval, přidáme nový.
+        // Pokud existoval, aktualizujeme.
+        setProgress((prev) => {
+          const index = prev.findIndex((p) => p.goalId === goalId);
+          if (index === -1) {
+            return [...prev, updatedProgress];
+          }
+          const newProgressArray = [...prev];
+          newProgressArray[index] = updatedProgress;
+          return newProgressArray;
+        });
+      } catch (error) {
+        console.error("Error completing daily tasks:", error);
+      }
+    },
+    []
+  );
+
+  // 3) Výpočet celkového duration
+  const totalDuration = goals.reduce((sum, g) => sum + g.duration, 0);
+
+  // 4) Celkem splněných dnů (completedDays) z progressu
+  const totalCompletedDays = progress.reduce((sum, p) => sum + p.completedDays, 0);
+
+  // 5) Celkové % (celkem splněných dnů / součet duration) * 100
+  const overallProgress = totalDuration > 0 ? (totalCompletedDays / totalDuration) * 100 : 0;
+
+  // 6) Day Streaks = max(p.streak) z progressu
+  const dayStreak = progress.length > 0 ? Math.max(...progress.map((p) => p.completedDays)) : 0;
+
+
+  // ====== Render UI ======
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -182,8 +273,8 @@ const DashboardPage: React.FC = () => {
   return (
     <div className="flex flex-col items-center min-h-screen text-white font-sans mb-20 md:mt-20">
       <div className="w-full max-w-4xl mx-auto p-2">
+        {/* Horní řádek s logem a "U" */}
         <div className="grid grid-cols-2 items-center">
-          {/* Levá část s logem */}
           <div className="flex items-center bg-white text-black rounded-full p-1 px-3 justify-self-start">
             <img
               src="/images/app-image/marenas-logo-octo.jpg"
@@ -192,8 +283,6 @@ const DashboardPage: React.FC = () => {
             />
             <h1 className="text-xl font-bold">EVO</h1>
           </div>
-
-          {/* Pravá část s uživatelem */}
           <div className="flex items-center justify-self-end">
             <div className="bg-gray-200 rounded-full w-10 h-10 flex items-center justify-center">
               <span className="text-black font-bold">U</span>
@@ -201,6 +290,7 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Citát */}
         <section className="bg-white text-black p-4 rounded-lg w-full text-center my-4">
           <p className="text-2xl italic px-2">
             “Dosáhněte vašeho cíle rychleji a úspěšněji.”
@@ -208,12 +298,14 @@ const DashboardPage: React.FC = () => {
           <p className="mt-2 text-sm">Krotil Matyáš</p>
         </section>
 
+        {/* Wrapper s kartami */}
         <div className="flex flex-col items-center space-y-4 my-4 w-full">
-          {/* Wrapper s kartami */}
+          {/* Goals "kruh" */}
           <div className="flex gap-4 justify-center w-full">
             {/* Karta - Goals */}
             <div className="bg-gray-800 rounded-lg p-4 w-1/2 text-center">
               <h2 className="text-lg font-semibold">Goals</h2>
+              {/* Kruh s celkovým pokrokem */}
               <div className="relative flex items-center justify-center mt-4">
                 <svg className="w-24 h-24">
                   <circle
@@ -233,14 +325,15 @@ const DashboardPage: React.FC = () => {
                     fill="none"
                     stroke="currentColor"
                     strokeDasharray="283"
-                    strokeDashoffset={283 - (283 * 50) / 100}
+                    // spočítáme dashoffset: (283 - (283 * overallProgress)/100)
+                    strokeDashoffset={283 - (283 * overallProgress) / 100}
                     strokeLinecap="round"
                     transform="rotate(-90 47.5 48)"
                     className="text-purple-500"
                   />
                 </svg>
                 <span className="absolute text-2xl font-bold text-white">
-                  50 %
+                  {overallProgress.toFixed(0)} %
                 </span>
               </div>
             </div>
@@ -249,21 +342,33 @@ const DashboardPage: React.FC = () => {
             <div className="bg-gray-800 rounded-lg p-4 w-1/2 text-center">
               <h2 className="text-lg font-semibold">Day Streaks</h2>
               <div className="flex justify-center gap-2 mt-4">
+                {/* Tohle je jen vizuální příklad 8 bublin.
+                    Můžeš to nahradit "dayStreak" => a zobrazit jen dayStreak bublin. */}
                 {[...Array(8)].map((_, index) => (
                   <div
                     key={index}
                     className={`w-8 h-8 rounded-full ${
-                      index < 4 ? "bg-green-400" : "bg-gray-600"
+                      index < dayStreak ? "bg-green-400" : "bg-gray-600"
                     }`}
                   ></div>
                 ))}
               </div>
+              {/* Příklad "procentuálního" progressu pro streak */}
               <div className="w-full bg-gray-600 rounded-full h-2 mt-4">
                 <div
                   className="bg-purple-500 h-2 rounded-full"
                   style={{ width: "70%" }}
                 ></div>
               </div>
+              <div className="mt-2 text-xl font-bold">
+  {dayStreak}{" "}
+  {dayStreak === 1
+    ? "den v řadě"
+    : dayStreak >= 2 && dayStreak <= 4
+    ? "dny v řadě"
+    : "dní v řadě"}
+</div>
+
               <button className="mt-4 px-4 py-2 bg-purple-500 text-white rounded">
                 Keep it up!
               </button>
@@ -296,10 +401,8 @@ const DashboardPage: React.FC = () => {
               <h2 className="text-lg font-semibold border-b border-gray-600 pb-2">
                 Modules in Progress
               </h2>
-              {/* Module Title */}
               <p className="font-medium mt-2">Meditation for Success</p>
               <p className="text-sm text-gray-400">Lekce 2: Concentration</p>
-              {/* Motivational Quotes */}
               <div className="mt-4 p-3 bg-gray-700 rounded-lg">
                 <div className="flex text-center pb-1">
                   <h3 className="ml-3">#2 Concentration</h3>
@@ -312,17 +415,15 @@ const DashboardPage: React.FC = () => {
                   </div>
                 </div>
                 <p className="text-xs text-gray-400 italic">
-                  začátek psaní, pro lekci kterou si každý vyzkouší atd...
+                  začátek psaní, pro lekci...
                 </p>
               </div>
-              {/* Action Button */}
               <Link
                 href="/educationPage"
                 className="mt-5 px-4 py-2 bg-purple-500 text-white rounded block text-center"
               >
                 Start Learning
               </Link>
-              {/* Progress Bar */}
               <div className="w-full bg-gray-600 rounded-full h-2 mt-5">
                 <div
                   className="bg-purple-500 h-2 rounded-full"
@@ -330,7 +431,6 @@ const DashboardPage: React.FC = () => {
                 ></div>
               </div>
               <p className="text-sm text-gray-400 mt-1">50% Completed</p>
-              {/* Upcoming Module */}
               <div className="mt-5 p-3 bg-gray-700 rounded-lg text-center">
                 <h3 className="font-semibold text-sm text-white">
                   Upcoming Module:
@@ -342,14 +442,20 @@ const DashboardPage: React.FC = () => {
             </div>
           </section>
 
-          {/* ✅ Dnešní úkoly */}
+          {/* Dnešní úkoly */}
           <div className="bg-gray-800 rounded-lg p-6 w-full text-center">
             <h2 className="text-lg font-semibold border-b border-gray-600 pb-2">
               📌 Dnešní úkoly
             </h2>
             <div className="mt-4">
+              {/* Zde pro každý cíl vykreslíme "GoalTasks",
+                  který zpracuje 3 checkboxy a zavolá handleDailyTasksComplete při dokončení. */}
               {goals.map((goal) => (
-                <GoalTasks key={goal.id} goal={goal} />
+                <GoalTasks
+                  key={goal.id}
+                  goal={goal}
+                  onComplete={handleDailyTasksComplete}
+                />
               ))}
             </div>
             <button className="mt-6 px-6 py-3 bg-purple-500 text-white rounded-lg hover:scale-105 transition-transform">
