@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faClock } from "@fortawesome/free-solid-svg-icons";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Cookies from "js-cookie";
 import { faUser } from "@fortawesome/free-solid-svg-icons/faUser";
 
@@ -38,6 +38,30 @@ interface Progress {
   completedDays: number;
   lastCompletionDate: string | null;
   streak: number;
+}
+
+// Přidáme rozhraní pro kurzy
+interface Course {
+  id: number;
+  name: string;
+  description: string;
+  image?: string;
+  lessons: Lesson[];
+}
+
+interface Lesson {
+  id: number;
+  title: string;
+  subtitle?: string;
+  content: string;
+  duration: number;
+}
+
+interface UserCourse {
+  id: number;
+  progress: number;
+  completedAt: string | null;
+  course: Course;
 }
 
 // ========== Komponenta GoalTasks ==========
@@ -145,8 +169,11 @@ const GoalTasks: React.FC<{
 
 const DashboardPage: React.FC = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [progress, setProgress] = useState<Progress[]>([]); // progress z DB
+  const [userCourses, setUserCourses] = useState<UserCourse[]>([]);
+  const [activeCourse, setActiveCourse] = useState<UserCourse | null>(null);
   const [loading, setLoading] = useState(true);
 
   // 1) Načítáme seznam cílů a progress z DB
@@ -159,8 +186,8 @@ const DashboardPage: React.FC = () => {
       }
 
       try {
-        // Zavoláme /api/goals a /api/progress
-        const [resGoals, resProgress] = await Promise.all([
+        // Zavoláme /api/goals, /api/progress a /api/courses/user/:userId
+        const [resGoals, resProgress, resUserCourses] = await Promise.all([
           fetch("http://localhost:3001/api/goals", {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -171,28 +198,63 @@ const DashboardPage: React.FC = () => {
               Authorization: `Bearer ${token}`,
             },
           }),
+          fetch("http://localhost:3001/api/courses/my/courses", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
         ]);
 
-        if (!resGoals.ok || !resProgress.ok) {
+        if (!resGoals.ok || !resProgress.ok || !resUserCourses.ok) {
           throw new Error("Failed to fetch data");
         }
 
-        const [goalsData, progressData] = await Promise.all([
+        const [goalsData, progressData, userCoursesData] = await Promise.all([
           resGoals.json(),
           resProgress.json(),
+          resUserCourses.json(),
         ]);
 
         setGoals(goalsData);
         setProgress(progressData);
+        setUserCourses(userCoursesData);
+        
+        // Pokud máme kurzy, nastavíme první aktivní jako aktivní
+        if (userCoursesData.length > 0) {
+          const activeCourses = userCoursesData.filter(
+            (course: UserCourse) => !course.completedAt
+          );
+          
+          if (activeCourses.length > 0) {
+            // Zkontrolovat URL parametr courseId
+            const courseIdParam = searchParams?.get('courseId');
+            
+            if (courseIdParam) {
+              // Najít kurz podle ID v URL
+              const courseById = activeCourses.find(
+                (c: UserCourse) => c.course.id === parseInt(courseIdParam)
+              );
+              
+              if (courseById) {
+                setActiveCourse(courseById);
+              } else {
+                setActiveCourse(activeCourses[0]);
+              }
+            } else {
+              // Jinak nastavit první aktivní kurz
+              setActiveCourse(activeCourses[0]);
+            }
+          }
+        }
       } catch (error) {
-        console.error("Error fetching goals or progress:", error);
+        console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
       }
     };
 
     fetchAllData();
-  }, [router]);
+  }, [router, searchParams]);
 
   // 2) Callback, když se uživatel dokončí denní úkoly pro 1 cíl
   const handleDailyTasksComplete = useCallback(
@@ -202,7 +264,7 @@ const DashboardPage: React.FC = () => {
         if (!token) return;
 
         // Zavoláme POST /api/progress/:goalId/complete
-        const res = await fetch(`http://localhost:3001/api/api/progress/${goalId}/complete`, {
+        const res = await fetch(`http://localhost:3001/api/goals/progress/${goalId}/complete`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -244,6 +306,15 @@ const DashboardPage: React.FC = () => {
   // 6) Day Streaks = max(p.streak) z progressu
   const dayStreak = progress.length > 0 ? Math.max(...progress.map((p) => p.completedDays)) : 0;
 
+  // Funkce pro přechod na detail kurzu
+  const goToCourse = (courseId: number) => {
+    router.push(`/courses/${courseId}`);
+  };
+
+  // Funkce pro přechod na stránku s kurzy
+  const goToCourses = () => {
+    router.push('/courses');
+  };
 
   // ====== Render UI ======
   if (loading) {
@@ -299,7 +370,7 @@ const DashboardPage: React.FC = () => {
         {/* Citát */}
         <section className="bg-white text-black p-4 rounded-lg w-full text-center my-4">
           <p className="text-2xl italic px-2">
-            “Dosáhněte vašeho cíle rychleji a úspěšněji.”
+            &quot; Dosáhněte vašeho cíle rychleji a úspěšněji. &quot;
           </p>
           <p className="mt-2 text-sm">Krotil Matyáš</p>
         </section>
@@ -401,7 +472,7 @@ const DashboardPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Modules in Progress */}
+          {/* 
           <section className="ActualStudyModel w-full">
             <div className="bg-gray-800 rounded-lg p-4 w-full text-center">
               <h2 className="text-lg font-semibold border-b border-gray-600 pb-2">
@@ -446,6 +517,132 @@ const DashboardPage: React.FC = () => {
                 </p>
               </div>
             </div>
+          </section> */}
+   {/* Aktivní kurz */}
+   <div className="w-full bg-gray-800 p-6 rounded-lg">
+            <h2 className="text-xl font-semibold mb-4">Váš aktivní kurz</h2>
+            
+            {activeCourse ? (
+              <div className="space-y-4">
+                <div className="flex justify-between items-start">
+                  <h3 className="text-lg font-medium">{activeCourse.course.name}</h3>
+                  <span className="text-sm text-gray-400">
+                    {activeCourse.progress}% dokončeno
+                  </span>
+                </div>
+                
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div
+                    className="bg-purple-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${activeCourse.progress}%` }}
+                  />
+                </div>
+                
+                <p className="text-sm text-gray-400 line-clamp-2">
+                  {activeCourse.course.description}
+                </p>
+                
+                <div className="flex space-x-3 pt-2">
+                  <button
+                    onClick={() => goToCourse(activeCourse.course.id)}
+                    className="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 px-4 rounded-md transition-colors"
+                  >
+                    Pokračovat v kurzu
+                  </button>
+                  
+                  <button
+                    onClick={goToCourses}
+                    className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition-colors"
+                  >
+                    Změnit kurz
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="mb-4">
+                  Nemáte aktivní kurz. Vyberte si z našich vzdělávacích kurzů.
+                </p>
+                <button
+                  onClick={goToCourses}
+                  className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-300"
+                >
+                  Prohlédnout kurzy
+                </button>
+              </div>
+            )}
+              <div className="mt-5 p-3 bg-gray-700 rounded-lg text-center">
+                <h3 className="font-semibold text-sm text-white">
+                  Upcoming Module:
+                </h3>
+                <p className="text-xs text-gray-400">
+                  Mindfulness for Productivity
+                </p>
+              </div>
+          </div>
+          {/* Sekce kurzů */}
+          <section className="w-full max-w-4xl mx-auto">
+            <div className="bg-gray-800 rounded-lg p-6 w-full text-center my-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-lg font-semibold">Moje kurzy</h2>
+                <button
+                  onClick={() => router.push('/modules')}
+                  className="px-4 py-2 bg-purple-500 rounded-lg hover:bg-purple-600 transition-colors"
+                >
+                  Prozkoumat kurzy
+                </button>
+              </div>
+
+              {userCourses.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-400">Zatím nemáte žádné kurzy</p>
+                  <button
+                    onClick={() => router.push('/modules')}
+                    className="mt-4 px-6 py-2 bg-purple-500 rounded-lg hover:bg-purple-600 transition-colors"
+                  >
+                    Začít s kurzy
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {userCourses.map(({ course, progress }) => (
+                    <div key={course.id} className="bg-gray-700 p-4 rounded-lg">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="text-left font-medium">{course.name}</h3>
+                          <p className="text-sm text-gray-400 mt-1">{course.description}</p>
+                        </div>
+                        {course.image && (
+                          <img
+                            src={course.image}
+                            alt={course.name}
+                            className="w-16 h-16 object-cover rounded-lg ml-4"
+                          />
+                        )}
+                      </div>
+                      <div className="mt-4">
+                        <div className="flex justify-between text-sm text-gray-400 mb-1">
+                          <span>Pokrok</span>
+                          <span>{progress}%</span>
+                        </div>
+                        <div className="w-full bg-gray-600 rounded-full h-2">
+                          <div
+                            className="bg-purple-500 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => router.push(`/courses/${course.id}`)}
+                        className="w-full mt-4 px-4 py-2 bg-purple-500 rounded-lg hover:bg-purple-600 transition-colors"
+                      >
+                        Pokračovat v kurzu
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </section>
 
           {/* Dnešní úkoly */}
@@ -468,6 +665,8 @@ const DashboardPage: React.FC = () => {
               ✅ Dokončit úkoly
             </button>
           </div>
+
+       
         </div>
       </div>
     </div>

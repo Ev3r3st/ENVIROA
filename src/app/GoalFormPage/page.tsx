@@ -47,7 +47,7 @@ const GoalFormPage: React.FC = () => {
         }
       }
 
-      const response = await fetch("http://localhost:3001/api/api/goals", {
+      const response = await fetch("http://localhost:3001/api/goals", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -55,13 +55,13 @@ const GoalFormPage: React.FC = () => {
         },
         body: JSON.stringify({
           goal_name: formData.goal_name,
-          reason: formData.reason,
-          destination: formData.destination,
-          new_self: formData.new_self,
           daily_action: formData.daily_action,
           daily_learning: formData.daily_learning,
           daily_visualization: formData.daily_visualization,
           duration: parseInt(formData.duration, 10),
+          reason: formData.reason,
+          destination: formData.destination,
+          new_self: formData.new_self,
         }),
       });
 

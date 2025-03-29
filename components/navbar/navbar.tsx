@@ -7,7 +7,7 @@ import {
   faChartLine,
   faBullseye,
   faUser,
-  faCog,
+  faGraduationCap,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
@@ -20,7 +20,7 @@ const Navbar: React.FC = () => {
           href="/"
           className="text-2xl font-semibold text-pink-200 hover:text-pink-300 hidden md:block"
         >
-          Moje Cíle
+          
         </Link>
 
         {/* Navigation Links */}
@@ -36,38 +36,38 @@ const Navbar: React.FC = () => {
           </div>
           <div className="icons">
             <Link
-              href="/"
+              href="/dashboard"
               className="hover:text-pink-300  text-sm flex flex-col items-center"
             >
               <FontAwesomeIcon icon={faChartLine} className="m-1" />
-              Domů
+              Dashboard
             </Link>
           </div>
           <div className="icons">
             <Link
-              href="/home"
+              href="/courses"
+              className="hover:text-pink-300  text-sm flex flex-col items-center"
+            >
+              <FontAwesomeIcon icon={faGraduationCap} className="m-1" />
+              Kurzy
+            </Link>
+          </div>
+          <div className="icons">
+            <Link
+              href="/GoalFormPage"
               className="hover:text-pink-300  text-sm flex flex-col items-center"
             >
               <FontAwesomeIcon icon={faBullseye} className="m-1" />
-              Domů
+              Nový cíl
             </Link>
           </div>
           <div className="icons">
             <Link
-              href="/home"
+              href="/profile"
               className="hover:text-pink-300  text-sm flex flex-col items-center"
             >
               <FontAwesomeIcon icon={faUser} className="m-1" />
-              Domů
-            </Link>
-          </div>
-          <div className="icons">
-            <Link
-              href="/home"
-              className="hover:text-pink-300  text-sm flex flex-col items-center"
-            >
-              <FontAwesomeIcon icon={faCog} className="m-1" />
-              Domů
+              Profil
             </Link>
           </div>
         </div>
