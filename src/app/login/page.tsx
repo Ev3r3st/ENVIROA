@@ -28,21 +28,25 @@ const LoginPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null); // Reset error state
+    setError(null);
 
     try {
-      // Remove empty fields before sending the request
-      const filteredData = Object.fromEntries(
-        Object.entries(formData).filter(([_, value]) => value !== "")
-      );
-
       const endpoint = isRegistering
         ? "http://localhost:3001/api/auth/register"
-        : "http://localhost:3001/api/auth/login"; // Přímý odkaz na BE
+        : "http://localhost:3001/api/auth/login";
+
+      // Pro login posíláme pouze username a password
+      const requestData = isRegistering
+        ? formData
+        : {
+            username: formData.username,
+            password: formData.password,
+          };
+
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(filteredData),
+        body: JSON.stringify(requestData),
       });
 
       if (!response.ok) {
@@ -51,15 +55,29 @@ const LoginPage: React.FC = () => {
       }
 
       const data = await response.json();
-      if (!isRegistering && data.access_token) {
+
+      if (isRegistering) {
+        toast.success("Registration successful!", {
+          position: "top-center",
+          autoClose: 3000,
+        });
+        setIsRegistering(false);
+        setFormData({
+          username: "",
+          password: "",
+          email: "",
+          fullname: "",
+          address: "",
+        });
+      } else {
         // Uložení tokenu do cookies
-        Cookies.set("token", data.access_token, {
+        Cookies.set("token", data.accessToken, {
           expires: 7,
           sameSite: "Strict",
         });
 
         // Uložení tokenu do localStorage
-        localStorage.setItem("access_token", data.access_token);
+        localStorage.setItem("token", data.accessToken);
 
         toast.success("Login successful!", {
           position: "top-center",
@@ -69,11 +87,6 @@ const LoginPage: React.FC = () => {
         setTimeout(() => {
           router.push("/dashboard");
         }, 3000);
-      } else {
-        toast.success("Registration successful!", {
-          position: "top-center",
-          autoClose: 3000,
-        });
       }
     } catch (err: unknown) {
       console.error((err as Error).message);

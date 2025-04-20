@@ -3,12 +3,10 @@
 import React, { useState, useEffect } from "react";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
-import GoalEdit from "../../../components/Goal/GoalEdit/GoalEdit";
 import TabbedGoals from "../../../components/Goal/TabbedGoals";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheck, faClock, faGraduationCap, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faClock, faTrashAlt, faPencilAlt, faTimes } from '@fortawesome/free-solid-svg-icons';
 
-// Typ cíle
 interface Goal {
   id: number;
   goal_name: string;
@@ -21,7 +19,6 @@ interface Goal {
   duration: number;
 }
 
-// Typ uživatele
 interface UserData {
   username: string;
   email: string;
@@ -29,7 +26,6 @@ interface UserData {
   address: string;
 }
 
-// Typ kurzu
 interface Lesson {
   id: number;
   title: string;
@@ -50,6 +46,26 @@ interface UserCourse {
   completedAt: string | null;
   course: Course;
 }
+
+interface UserProfile {
+  id: string;
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  bio: string;
+  avatar: string;
+}
+
+interface EditableField {
+  name: keyof UserProfile;
+  value: string;
+  isEditing: boolean;
+}
+/*
+interface ApiError {
+  message: string;
+}*/
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -72,6 +88,9 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
+
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [editableFields, setEditableFields] = useState<EditableField[]>([]);
 
   useEffect(() => {
     const token = Cookies.get("token");
@@ -120,8 +139,25 @@ export default function ProfilePage() {
 
         setGoals(dataGoals);
         setUserCourses(dataCourses);
-      } catch (err: any) {
-        setMessage(err.message);
+
+        setProfile({
+          id: dataUser.id || "",
+          username: dataUser.username || "",
+          email: dataUser.email || "",
+          firstName: dataUser.firstName || "",
+          lastName: dataUser.lastName || "",
+          bio: dataUser.bio || "",
+          avatar: dataUser.avatar || "",
+        });
+
+        setEditableFields([
+          { name: 'firstName', value: dataUser.firstName || '', isEditing: false },
+          { name: 'lastName', value: dataUser.lastName || '', isEditing: false },
+          { name: 'bio', value: dataUser.bio || '', isEditing: false },
+        ]);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Neznámá chyba";
+        setMessage(errorMessage);
         setMessageType("error");
       } finally {
         setLoading(false);
@@ -159,8 +195,9 @@ export default function ProfilePage() {
 
       setMessage("Profil byl úspěšně uložen.");
       setMessageType("success");
-    } catch (err: any) {
-      setMessage(err.message);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Neznámá chyba";
+      setMessage(errorMessage);
       setMessageType("error");
     }
   };
@@ -198,8 +235,9 @@ export default function ProfilePage() {
       setUserCourses(userCourses.filter(uc => uc.course.id !== courseId));
       setMessage("Byli jste úspěšně odhlášeni z kurzu.");
       setMessageType("success");
-    } catch (err: any) {
-      setMessage(err.message);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Neznámá chyba";
+      setMessage(errorMessage);
       setMessageType("error");
     }
   };
@@ -209,12 +247,67 @@ export default function ProfilePage() {
     router.push(`/courses/${courseId}`);
   };
 
+  const handleEdit = (fieldName: keyof UserProfile) => {
+    setEditableFields(fields =>
+      fields.map(field =>
+        field.name === fieldName
+          ? { ...field, isEditing: true }
+          : field
+      )
+    );
+  };
+
+  const handleSave = async (fieldName: keyof UserProfile) => {
+    const field = editableFields.find(f => f.name === fieldName);
+    if (!field) return;
+
+    try {
+      const response = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [fieldName]: field.value }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update profile');
+
+      setEditableFields(fields =>
+        fields.map(f =>
+          f.name === fieldName
+            ? { ...f, isEditing: false }
+            : f
+        )
+      );
+
+      if (profile) {
+        setProfile({ ...profile, [fieldName]: field.value });
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+    }
+  };
+
+  const handleCancel = (fieldName: keyof UserProfile) => {
+    if (!profile) return;
+
+    setEditableFields(fields =>
+      fields.map(field =>
+        field.name === fieldName
+          ? { ...field, value: profile[fieldName] as string, isEditing: false }
+          : field
+      )
+    );
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen bg-gray-900 text-white">
         <p>Načítání...</p>
       </div>
     );
+  }
+
+  if (!profile) {
+    return <div>Profil nenalezen</div>;
   }
 
   return (
@@ -369,6 +462,67 @@ export default function ProfilePage() {
       {/* Seznam cílů + možnost editace */}
       <div className="min-h-screen w-full mt-8">
         <TabbedGoals goals={goals} />
+      </div>
+
+      <div className="bg-gray-800 shadow-lg rounded-lg w-full max-w-xl p-6 mt-8">
+        <h2 className="text-xl font-bold text-white mb-4">Upravit profil</h2>
+        
+        <div className="space-y-6">
+          {editableFields.map(field => (
+            <div key={field.name} className="flex items-center justify-between">
+              <div>
+                <label className="block text-sm font-medium text-gray-200">
+                  {field.name === 'firstName' ? 'Jméno' :
+                   field.name === 'lastName' ? 'Příjmení' :
+                   field.name === 'bio' ? 'O mně' : field.name}
+                </label>
+                {field.isEditing ? (
+                  <input
+                    type="text"
+                    value={field.value}
+                    onChange={(e) => {
+                      setEditableFields(fields =>
+                        fields.map(f =>
+                          f.name === field.name
+                            ? { ...f, value: e.target.value }
+                            : f
+                        )
+                      );
+                    }}
+                    className="mt-1 block w-full rounded-md border-gray-600 shadow-sm focus:border-purple-500 focus:ring-purple-500"
+                  />
+                ) : (
+                  <p className="mt-1 text-sm text-gray-400">{field.value}</p>
+                )}
+              </div>
+              <div className="flex space-x-2">
+                {field.isEditing ? (
+                  <>
+                    <button
+                      onClick={() => handleSave(field.name)}
+                      className="text-green-400 hover:text-green-500"
+                    >
+                      <FontAwesomeIcon icon={faCheck} />
+                    </button>
+                    <button
+                      onClick={() => handleCancel(field.name)}
+                      className="text-red-400 hover:text-red-500"
+                    >
+                      <FontAwesomeIcon icon={faTimes} />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => handleEdit(field.name)}
+                    className="text-purple-400 hover:text-purple-500"
+                  >
+                    <FontAwesomeIcon icon={faPencilAlt} />
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

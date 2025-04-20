@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - EVO App</title>
+    <meta name="theme-color" content="#1F2937">
+    <meta name="description" content="Aplikace pro sledování osobních cílů a vzdělávání">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="/icons/icon-192x192.png" type="image/png">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #1F2937;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+        }
+        .emoji {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+        p {
+            margin-bottom: 2rem;
+            color: #D1D5DB;
+        }
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            min-width: 160px;
+        }
+        .primary {
+            background: #7C3AED;
+            color: white;
+        }
+        .primary:hover {
+            background: #6D28D9;
+        }
+        .secondary {
+            background: #4B5563;
+            color: white;
+        }
+        .secondary:hover {
+            background: #374151;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="emoji">📡</div>
+        <h1>Není připojení k internetu</h1>
+        <p>Tato stránka není dostupná offline. Některé funkce aplikace jsou ale stále k dispozici.</p>
+        <div class="button-group">
+            <button class="primary" onclick="goToDashboard()">
+                Přejít na dashboard
+            </button>
+            <button class="secondary" onclick="retryConnection()">
+                Zkusit znovu
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function goToDashboard() {
+            // Pokus o přesměrování na dashboard s force reload
+            window.location.replace('/dashboard');
+            
+            // Záložní varianta - pokud replace nefunguje
+            setTimeout(() => {
+                window.location.href = '/dashboard';
+            }, 100);
+        }
+
+        function retryConnection() {
+            // Zkusíme znovu načíst původní stránku
+            window.location.reload();
+        }
+
+        // Kontrola, zda jsme online
+        window.addEventListener('online', function() {
+            retryConnection();
+        });
+    </script>
+</body>
+</html> 

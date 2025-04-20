@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -106,6 +107,7 @@ export default function GoalEdit({ goalId, onGoalUpdated, onClose }: GoalEditPro
       setMessage("Cíl byl úspěšně upraven.");
       setMessageType("success");
       if (onGoalUpdated) onGoalUpdated(updatedGoal);
+    
     } catch (error: any) {
       setMessage(error.message);
       setMessageType("error");

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 
+
 interface Course {
   id: number;
   name: string;
@@ -214,17 +215,21 @@ const AdminCoursesPage = () => {
             </button>
           </form>
         </div>
-
+       
         {/* Seznam kurzů */}
+        
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {courses.map((course) => (
+            
             <div key={course.id} className="bg-gray-800 p-6 rounded-lg">
               {course.image && (
+                <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={course.image}
                   alt={course.name}
                   className="w-full h-48 object-cover rounded-lg mb-4"
-                />
+                /></>
               )}
               <h3 className="text-xl font-semibold mb-2">{course.name}</h3>
               <p className="text-gray-400 mb-4">{course.description}</p>

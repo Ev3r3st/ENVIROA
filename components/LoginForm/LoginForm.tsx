@@ -1,10 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import React, { useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useRouter } from "next/navigation";
-import Cookies from "js-cookie";
+import { useAuth } from '@/hooks/useAuth';
 
 const LoginPage: React.FC = () => {
   const router = useRouter();
@@ -17,6 +18,7 @@ const LoginPage: React.FC = () => {
     address: "",
   });
   const [error, setError] = useState<string | null>(null);
+  const { login } = useAuth();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -28,61 +30,13 @@ const LoginPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null); // Reset error state
+    setError(null);
 
     try {
-      // Remove empty fields before sending the request
-      const filteredData = Object.fromEntries(
-        Object.entries(formData).filter(([_, value]) => value !== "")
-      );
-
-      const endpoint = isRegistering
-        ? "http://localhost:3001/api/auth/register"
-        : "http://localhost:3001/api/auth/login";
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(filteredData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Something went wrong");
-      }
-
-      const data = await response.json();
-      if (!isRegistering && data.access_token) {
-        // Save token to cookies
-        Cookies.set("token", data.access_token, {
-          expires: 7, // 7 days
-          sameSite: "Strict",
-          secure: process.env.NODE_ENV === "production", // Secure in production
-        });
-
-        // Save token to localStorage
-        localStorage.setItem("access_token", data.access_token);
-
-        toast.success("Login successful!", {
-          position: "top-center",
-          autoClose: 3000,
-        });
-
-        setTimeout(() => {
-          router.push("/dashboard");
-        }, 3000);
-      } else {
-        toast.success("Registration successful!", {
-          position: "top-center",
-          autoClose: 3000,
-        });
-      }
-    } catch (err: unknown) {
-      console.error((err as Error).message);
-      setError((err as Error).message || "An unexpected error occurred");
-      toast.error((err as Error).message || "An unexpected error occurred", {
-        position: "top-right",
-        autoClose: 3000,
-      });
+      await login(formData.username, formData.password);
+      router.push('/dashboard');
+    } catch (error) {
+      setError('Nesprávné přihlašovací údaje');
     }
   };
 

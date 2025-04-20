@@ -1,52 +1,106 @@
 {
-  "name": "ENVIROA",
-  "short_name": "ENVIROA make your goal real",
-  "theme_color": "#fff",
-  "background_color": "#fff",
-  "display": "fullscreen",
+  "name": "EVO App",
+  "short_name": "EVO",
+  "description": "Aplikace pro sledování osobních cílů a vzdělávání",
+  "start_url": "/?source=pwa",
+  "display": "standalone",
+  "background_color": "#1F2937",
+  "theme_color": "#1F2937",
   "orientation": "portrait",
-  "scope": "/",
-  "start_url": "/",
+  "form_factor": "wide",
   "icons": [
     {
-      "src": "images/icons/icon-72x72.png",
+      "src": "/images/icons/icon-72x72.png",
       "sizes": "72x72",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "images/icons/icon-96x96.png",
+      "src": "/images/icons/icon-96x96.png",
       "sizes": "96x96",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "images/icons/icon-128x128.png",
+      "src": "/images/icons/icon-128x128.png",
       "sizes": "128x128",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "images/icons/icon-144x144.png",
+      "src": "/images/icons/icon-144x144.png",
       "sizes": "144x144",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "images/icons/icon-152x152.png",
+      "src": "/images/icons/icon-152x152.png",
       "sizes": "152x152",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "images/icons/icon-192x192.png",
+      "src": "/images/icons/icon-192x192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "images/icons/icon-384x384.png",
+      "src": "/images/icons/icon-384x384.png",
       "sizes": "384x384",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "images/icons/icon-512x512.png",
+      "src": "/images/icons/icon-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Přejít na dashboard",
+      "url": "/dashboard",
+      "icons": [{ "src": "/images/icons/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/dashboard.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Dashboard aplikace EVO"
+    },
+    {
+      "src": "/screenshots/mobile-dashboard.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Dashboard aplikace EVO na mobilním zařízení"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "dir": "ltr",
+  "lang": "cs",
+  "prefer_related_applications": false,
+  "scope": "/",
+  "display_override": ["standalone", "minimal-ui"],
+  "related_applications": [],
+  "iarc_rating_id": "",
+  "share_target": {
+    "action": "/share-target",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "offline_enabled": true,
+  "id": "/"
 }

@@ -1,0 +1,21 @@
+const [goals, setGoals] = useState<Goal[]>([]);
+const [progress, setProgress] = useState<Progress[]>([]);
+const [userCourses, setUserCourses] = useState<UserCourse[]>([]);
+
+useEffect(() => {
+  const fetchAllData = async () => {
+    const token = Cookies.get("token");
+    const [resGoals, resProgress, resCourses] = await Promise.all([
+      fetch("http://localhost:3001/api/goals", { headers: {  Authorization: `Bearer ${token}` } }),
+fetch("http://localhost:3001/api/goals/progress", { headers: { Authorization: `Bearer ${token}` } }),
+fetch("http://localhost:3001/api/courses/my/courses", { headers: { Authorization: `Bearer ${token}` } }),
+    ]);
+    const [goalsData, progressData, coursesData] = await Promise.all([
+      resGoals.json(), resProgress.json(), resCourses.json(),
+]);
+    setGoals(goalsData);
+    setProgress(progressData);
+    setUserCourses(coursesData);
+  };
+  fetchAllData();
+}, []);

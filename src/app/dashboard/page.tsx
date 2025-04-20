@@ -1,184 +1,173 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
-import Link from "next/link";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faClock } from "@fortawesome/free-solid-svg-icons";
+import React, { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Cookies from "js-cookie";
-import { faUser } from "@fortawesome/free-solid-svg-icons/faUser";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faWifi, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 
-// ========== Rozhraní ==========
+// Import typů a rozhraní
+import { Goal, Progress, UserCourse } from "./interfaces";
 
-// Struktura cíle z backendu (včetně daily_action atd.)
-interface Goal {
-  id: number;
-  goal_name: string;
-  reason: string;
-  destination: string;
-  new_self: string;
-  daily_action: string;
-  daily_learning: string;
-  daily_visualization: string;
-  duration: number;
+// Import offlineStorage služby
+import { 
+  isOnline, 
+  saveDashboardDataOffline, 
+  getOfflineDashboardData,
+  getOfflineMode,
+  setOfflineMode,
+  addOfflineModeListener
+} from '@/services/offlineStorage';
+
+// Import komponent
+import MotivationalModal from "./MotivationalModal";
+import GoalProgress from "./GoalProgress";
+import GoalList from "./GoalList";
+import DailyTasksSection from "./DailyTasksSection";
+import GoalReminder from "./GoalReminder";
+import CourseSection from "./CourseSection";
+import MotivationStats from "./MotivationStats";
+import Header from "./Header";
+
+// Definice typů pro offline data
+interface DashboardOfflineData {
+  goals: Goal[];
+  progress: Progress[];
+  userCourses: UserCourse[];
+  lastUpdated?: string;
 }
 
-// Struktura úkolu pro vnitřní logiku checkboxů
-interface Task {
-  id: number;
-  name: string;
-  completed: boolean;
-}
-
-// Struktura progressu z tabulky "Progress"
-interface Progress {
-  id: number;
-  userId: number;
-  goalId: number;
-  completedDays: number;
-  lastCompletionDate: string | null;
-  streak: number;
-}
-
-// Přidáme rozhraní pro kurzy
-interface Course {
-  id: number;
-  name: string;
-  description: string;
-  image?: string;
-  lessons: Lesson[];
-}
-
-interface Lesson {
-  id: number;
-  title: string;
-  subtitle?: string;
-  content: string;
-  duration: number;
-}
-
-interface UserCourse {
-  id: number;
-  progress: number;
-  completedAt: string | null;
-  course: Course;
-}
-
-// ========== Komponenta GoalTasks ==========
-// Slouží k zobrazení úkolů pro jeden cíl (3 checkboxy).
-// Pokud uživatel všechny 3 splní, zavolá onComplete(goal.id).
-const GoalTasks: React.FC<{
-  goal: Goal;
-  onComplete: (goalId: number) => void;
-}> = ({ goal, onComplete }) => {
-  // Vytvoříme lokální "tasks" pro cvičení, učení, vizualizaci
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: 1, name: goal.daily_action, completed: false },
-    { id: 2, name: goal.daily_learning, completed: false },
-    { id: 3, name: goal.daily_visualization, completed: false },
-  ]);
-
-  // Kdykoli se mění tasks, zkontroluj, zda jsou všechny splněné
+// Klientská komponenta pro použití useSearchParams
+const SearchParamsWrapper = () => {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  
   useEffect(() => {
-    const allDone = tasks.every((task) => task.completed);
-    if (allDone) {
-      onComplete(goal.id);
+    // Získáme courseId z URL parametrů, pokud existuje
+    if (searchParams) {
+      const courseIdParam = searchParams.get('courseId');
+      if (courseIdParam) {
+        localStorage.setItem('activeCourseId', courseIdParam);
+        router.refresh();
+      }
     }
-  }, [tasks, goal.id, onComplete]);
-
-  // Přepínání stavu konkrétního tasku
-  const toggleTaskCompletion = (taskId: number) => {
-    setTasks((prevTasks) =>
-      prevTasks.map((t) =>
-        t.id === taskId ? { ...t, completed: !t.completed } : t
-      )
-    );
-  };
-
-  // Výpočet lokálního progressu (3 checkboxy => 0%, 33%, 66%, 100%)
-  const completedCount = tasks.filter((t) => t.completed).length;
-  const totalTasks = tasks.length; // 3
-  const progressPercent = (completedCount / totalTasks) * 100;
-  const isCompleted = progressPercent === 100;
-
-  // Definice emoji pro jednotlivé typy úkolů
-  const emojiMap = {
-    1: { completed: "✅", notCompleted: "💪🏼" },
-    2: { completed: "✅", notCompleted: "📚" },
-    3: { completed: "✅", notCompleted: "🧘‍♂️" },
-  };
-
-  return (
-    <div key={goal.id} className="mt-6 text-left">
-      <h3 className="text-white font-medium">{goal.goal_name}</h3>
-
-      {/* Checkboxy úkolů */}
-      <div className="mt-4">
-        {tasks.map((task) => {
-          // Dynamicky vybereme emoji pro completed/notCompleted
-          const emoji = task.completed
-            ? emojiMap[task.id as keyof typeof emojiMap].completed
-            : emojiMap[task.id as keyof typeof emojiMap].notCompleted;
-
-          return (
-            <div key={task.id} className="flex items-center mt-2">
-              <label className="inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={task.completed}
-                  onChange={() => toggleTaskCompletion(task.id)}
-                  className="sr-only peer"
-                />
-                <div className="w-6 h-6 flex items-center justify-center border-2 border-gray-300 rounded-md transition-all duration-300 peer-checked:bg-purple-500 peer-checked:border-purple-500">
-                  <svg
-                    className="hidden w-4 h-4 text-white peer-checked:block"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                </div>
-              </label>
-              <span className="ml-3 text-lg select-none transition-all duration-300 ease-in-out">
-                {emoji} {task.name}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Progress Bar (0% -> 100% pro tyto tři úkoly) */}
-      <div className="w-full bg-gray-600 rounded-full h-2 mt-4">
-        <div
-          className={`h-2 rounded-full transition-all duration-300 ${
-            isCompleted ? "bg-green-500" : "bg-purple-500"
-          }`}
-          style={{ width: `${progressPercent}%` }}
-        ></div>
-      </div>
-    </div>
-  );
+  }, [searchParams, router]);
+  
+  return null;
 };
 
 // ========== Hlavní komponenta DashboardPage ==========
 
 const DashboardPage: React.FC = () => {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [goals, setGoals] = useState<Goal[]>([]);
-  const [progress, setProgress] = useState<Progress[]>([]); // progress z DB
+  const [progress, setProgress] = useState<Progress[]>([]);
   const [userCourses, setUserCourses] = useState<UserCourse[]>([]);
   const [activeCourse, setActiveCourse] = useState<UserCourse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isNetworkOffline, setIsNetworkOffline] = useState(false);
+  const [offlineDataAvailable, setOfflineDataAvailable] = useState(false);
 
-  // 1) Načítáme seznam cílů a progress z DB
-  useEffect(() => {
-    const fetchAllData = async () => {
+  // State pro modální okno s motivací
+  const [showMotivationModal, setShowMotivationModal] = useState(false);
+  const [motivationalQuote, setMotivationalQuote] = useState("");
+  const [currentEmoji, setCurrentEmoji] = useState("✨");
+
+  // State pro sledování aktuálně vybraného cíle
+  const [activeGoalIndex, setActiveGoalIndex] = useState(0);
+
+  // Funkce pro ukládání dat dashboardu offline
+  const saveDashboardOffline = useCallback((dashboardData: DashboardOfflineData) => {
+    try {
+      // Nejprve zjistíme, zda už máme uložená data
+      const existingDataRaw = localStorage.getItem('offline_dashboard');
+      if (existingDataRaw) {
+        try {
+          const existingData = JSON.parse(existingDataRaw);
+          const now = Date.now();
+          
+          // Pokud data existují a nejsou starší než 5 minut, neukládáme znovu
+          if (existingData.timestamp && (now - existingData.timestamp < 5 * 60 * 1000)) {
+            // Omezíme logování - použijeme sessionStorage pro sledování
+            const lastLog = sessionStorage.getItem('dashboard_check_log');
+            if (!lastLog || (now - parseInt(lastLog, 10) > 10000)) { // 10 sekund mezi logy
+              console.log("Dashboard data jsou již aktuální, neukládáme znovu");
+              sessionStorage.setItem('dashboard_check_log', now.toString());
+            }
+            
+            setOfflineDataAvailable(true);
+            return;
+          }
+        } catch {
+          // Ignorujeme chybu při parsování a pokračujeme v ukládání
+        }
+      }
+      
+      // Pokud neexistují data nebo jsou stará, uložíme je
+      saveDashboardDataOffline({
+        goals: dashboardData.goals || [],
+        progress: dashboardData.progress || [],
+        userCourses: dashboardData.userCourses || [],
+        lastUpdated: new Date().toISOString()
+      });
+      setOfflineDataAvailable(true);
+    } catch (error) {
+      console.error("Chyba při ukládání dashboard dat offline:", error);
+    }
+  }, []);
+
+  // Načítáme seznam cílů a progress z DB
+  const fetchAllData = useCallback(async () => {
+    // Omezíme logování načítání - použijeme sessionStorage
+    const now = Date.now();
+    const lastFetchLog = sessionStorage.getItem('dashboard_fetch_log');
+    const shouldLog = !lastFetchLog || (now - parseInt(lastFetchLog, 10) > 10000); // 10 sekund mezi logy
+    
+    if (shouldLog) {
+      sessionStorage.setItem('dashboard_fetch_log', now.toString());
+    }
+    
+    // Nejprve zkontrolujeme, zda jsme offline a máme offline data
+    if (!isOnline()) {
+      if (shouldLog) console.log("Jsme offline, zkusíme načíst data z lokálního úložiště");
+      const offlineData = await getOfflineDashboardData();
+      
+      if (offlineData && offlineData.goals && offlineData.progress && offlineData.userCourses) {
+        if (shouldLog) console.log("Načítám dashboard data z offline úložiště");
+        setGoals(offlineData.goals as Goal[]);
+        setProgress(offlineData.progress as Progress[]);
+        setUserCourses(offlineData.userCourses as UserCourse[]);
+        
+        // Nastavení aktivního kurzu
+        if (offlineData.userCourses && Array.isArray(offlineData.userCourses) && offlineData.userCourses.length > 0) {
+          const activeCourseId = localStorage.getItem('activeCourseId');
+          if (activeCourseId) {
+            const courseId = parseInt(activeCourseId);
+            const courseById = (offlineData.userCourses as UserCourse[]).find(
+              (c: UserCourse) => c.course.id === courseId
+            );
+            
+            if (courseById) {
+              setActiveCourse(courseById);
+            } else {
+              setActiveCourse((offlineData.userCourses as UserCourse[])[0]);
+            }
+          } else {
+            setActiveCourse((offlineData.userCourses as UserCourse[])[0]);
+          }
+        }
+        
+        setOfflineDataAvailable(true);
+        setLoading(false);
+        return;
+      } else {
+        if (shouldLog) console.log("Offline data nejsou k dispozici");
+        setOfflineDataAvailable(false);
+        setIsNetworkOffline(true);
+      }
+    }
+    
+    // Pokud jsme online nebo nemáme offline data, načteme z API
       const token = Cookies.get("token");
       if (!token) {
         router.replace("/login");
@@ -186,6 +175,7 @@ const DashboardPage: React.FC = () => {
       }
 
       try {
+      if (shouldLog) console.log("Načítám data z API...");
         // Zavoláme /api/goals, /api/progress a /api/courses/user/:userId
         const [resGoals, resProgress, resUserCourses] = await Promise.all([
           fetch("http://localhost:3001/api/goals", {
@@ -218,68 +208,259 @@ const DashboardPage: React.FC = () => {
         setGoals(goalsData);
         setProgress(progressData);
         setUserCourses(userCoursesData);
-        
+
+      // Uložíme data pro offline použití
+      saveDashboardOffline({
+        goals: goalsData,
+        progress: progressData,
+        userCourses: userCoursesData
+      });
+
         // Pokud máme kurzy, nastavíme první aktivní jako aktivní
         if (userCoursesData.length > 0) {
           const activeCourses = userCoursesData.filter(
             (course: UserCourse) => !course.completedAt
           );
-          
+
           if (activeCourses.length > 0) {
-            // Zkontrolovat URL parametr courseId
-            const courseIdParam = searchParams?.get('courseId');
-            
+          // Nastavení aktivního kurzu podle URL parametru
+          if (typeof window !== 'undefined') {
+            const urlParams = new URLSearchParams(window.location.search);
+            const courseIdParam = urlParams.get('courseId');
+
             if (courseIdParam) {
-              // Najít kurz podle ID v URL
+              const courseId = parseInt(courseIdParam);
               const courseById = activeCourses.find(
-                (c: UserCourse) => c.course.id === parseInt(courseIdParam)
+                (c: UserCourse) => c.course.id === courseId
               );
-              
+
               if (courseById) {
                 setActiveCourse(courseById);
               } else {
                 setActiveCourse(activeCourses[0]);
               }
             } else {
-              // Jinak nastavit první aktivní kurz
+              setActiveCourse(activeCourses[0]);
+            }
+          } else {
               setActiveCourse(activeCourses[0]);
             }
           }
         }
       } catch (error) {
         console.error("Error fetching data:", error);
+      
+      // Pokud online fetch selže, zkusíme načíst offline data
+      const offlineData = await getOfflineDashboardData();
+      if (offlineData && offlineData.goals && offlineData.progress && offlineData.userCourses) {
+        if (shouldLog) console.log("Online fetch selhal, načítám dashboard data z offline úložiště");
+        setGoals(offlineData.goals as Goal[]);
+        setProgress(offlineData.progress as Progress[]);
+        setUserCourses(offlineData.userCourses as UserCourse[]);
+        setOfflineDataAvailable(true);
+      } else {
+        setOfflineDataAvailable(false);
+      }
       } finally {
         setLoading(false);
+    }
+  }, [router, saveDashboardOffline]);
+
+  // Detekce offline/online stavu
+  useEffect(() => {
+    // Omezení logování offline stavu
+    const getLogPermission = () => {
+      const now = Date.now();
+      const lastOfflineLog = sessionStorage.getItem('offline_state_log');
+      const shouldLog = !lastOfflineLog || (now - parseInt(lastOfflineLog, 10) > 10000); // 10 sekund mezi logy
+      
+      if (shouldLog) {
+        sessionStorage.setItem('offline_state_log', now.toString());
+      }
+      
+      return shouldLog;
+    };
+    
+    // Funkce pro detekci změny online/offline stavu
+    const handleOfflineModeChange = (isOffline: boolean) => {
+      const shouldLog = getLogPermission();
+      if (shouldLog) {
+        console.log(`🔄 Změna stavu offline v dashboardu: ${isOffline ? 'offline' : 'online'}`);
+      }
+      
+      setIsNetworkOffline(isOffline);
+      
+      // Pokud jsme znovu online a máme offline data, aktualizujeme
+      if (!isOffline && offlineDataAvailable) {
+        if (shouldLog) {
+          console.log("Jsme zpět online, zkusíme aktualizovat data");
+        }
+        fetchAllData();
+      }
+    };
+    
+    // Nastav počáteční stav z globálního offline stavu
+    const offline = getOfflineMode();
+    setIsNetworkOffline(offline);
+    console.log(`📱 Počáteční stav připojení v dashboardu: ${offline ? "offline" : "online"}`);
+    
+    // Přidáme posluchače na změny offline režimu
+    const removeListener = addOfflineModeListener(handleOfflineModeChange);
+    
+    // Reset do online režimu pokud jsme na dashboardu
+    if (navigator.onLine) {
+      setOfflineMode(false);
+    }
+    
+    // Cleanup při unmount
+    return () => {
+      removeListener();
+    };
+  }, [offlineDataAvailable, fetchAllData]);
+  
+  // Spustíme načítání dat při prvním načtení
+  useEffect(() => {
+    // Udržujeme flag zda jsme již načetli data, abychom předešli zbytečným opakovaným načtením
+    let isInitialDataFetchDone = false;
+    
+    const loadData = async () => {
+      if (isInitialDataFetchDone) {
+        // Pokud jsme již načetli data, nebudeme je načítat znovu v rámci jednoho renderování
+        return;
+      }
+      
+      // Omezíme logování inicializace
+      const now = Date.now();
+      const lastInitLog = sessionStorage.getItem('dashboard_init_log');
+      if (!lastInitLog || (now - parseInt(lastInitLog, 10) > 10000)) {
+        console.log("Komponenta dashboardu se načítá - zahajuji načítání dat");
+        sessionStorage.setItem('dashboard_init_log', now.toString());
+      }
+      
+      await fetchAllData();
+      isInitialDataFetchDone = true;
+    };
+    
+    loadData();
+    
+    // Cleanup při unmount
+    return () => {
+      // Resetujeme flag při unmount
+      isInitialDataFetchDone = false;
+    };
+  }, [fetchAllData]);
+
+  // useEffect pro zobrazení motivačního okna 3× denně
+  useEffect(() => {
+    // Motivační citáty
+    const motivationalQuotes = [
+      "Každý krok, který děláš, tě přibližuje k tvému cíli. Jsem na tebe hrdý!",
+      "Tvoje vytrvalost je obdivuhodná. Pokračuj dál, dokážeš to!",
+      "I malý pokrok každý den vede k velkým výsledkům. Skvělá práce!",
+      "Tvoje odhodlání je inspirací. Nevzdávej se, jsi na správné cestě!",
+      "To, že jsi dnes tady, ukazuje, jak silnou vůli máš. Gratuluji!",
+      "Překážky jsou jen výzvou pro tvou sílu. Jsi skvělý, že pokračuješ!",
+      "Úspěch není cíl, ale cesta. A ty jdeš tou cestou skvěle!",
+      "Sebedisciplína je tvůj klíč k úspěchu. A ty ji máš!",
+    ];
+
+    // Motivační emoji
+    const motivationalEmojis = [
+      "✨", "🌟", "💪", "🚀", "🏆", "🔥", "💯", "⭐", "🌈", "🌻",
+    ];
+
+    // Funkce pro kontrolu, zda se má zobrazit motivační modální okno
+    const checkMotivationModal = () => {
+      const today = new Date().toDateString();
+      const motivationData = localStorage.getItem("motivationModalData");
+      let count = 0;
+      let lastDate = "";
+
+      if (motivationData) {
+        const data = JSON.parse(motivationData);
+        lastDate = data.date;
+        count = data.count;
+      }
+
+      // Pokud je nový den nebo jsme ještě nedosáhli 3 zobrazení za den
+      if (lastDate !== today || count < 3) {
+        // Resetovat počítadlo, pokud je nový den
+        if (lastDate !== today) {
+          count = 0;
+        }
+
+        // Vyber náhodný motivační citát
+        const randomIndex = Math.floor(Math.random() * motivationalQuotes.length);
+        setMotivationalQuote(motivationalQuotes[randomIndex]);
+
+        // Vyber náhodné emoji
+        const randomEmojiIndex = Math.floor(Math.random() * motivationalEmojis.length);
+        setCurrentEmoji(motivationalEmojis[randomEmojiIndex]);
+
+        // Zobraz modální okno
+        setShowMotivationModal(true);
+
+        // Aktualizuj počítadlo a ulož informace
+        localStorage.setItem(
+          "motivationModalData",
+          JSON.stringify({
+            date: today,
+            count: count + 1,
+          })
+        );
       }
     };
 
-    fetchAllData();
-  }, [router, searchParams]);
+    // Kontroluj modální okno až po načtení dat
+    if (!loading) {
+      checkMotivationModal();
+    }
+  }, [loading]);
+
+  // Funkce pro zavření modálního okna
+  const closeMotivationModal = () => {
+    setShowMotivationModal(false);
+  };
+
+  // Funkce pro přepínání mezi cíli
+  const navigateToNextGoal = () => {
+    if (goals.length > 0) {
+      setActiveGoalIndex((prevIndex) =>
+        prevIndex === goals.length - 1 ? 0 : prevIndex + 1
+      );
+    }
+  };
+
+  const navigateToPreviousGoal = () => {
+    if (goals.length > 0) {
+      setActiveGoalIndex((prevIndex) =>
+        prevIndex === 0 ? goals.length - 1 : prevIndex - 1
+      );
+    }
+  };
 
   // 2) Callback, když se uživatel dokončí denní úkoly pro 1 cíl
-  const handleDailyTasksComplete = useCallback(
-    async (goalId: number) => {
-      try {
-        const token = Cookies.get("token");
-        if (!token) return;
+  const handleDailyTasksComplete = useCallback(async (goalId: number) => {
+    try {
+      const currentProgress = progress.find(p => p.goalId === goalId);
+      const today = new Date().toISOString();
+      
+      const updatedProgress: Progress = {
+        id: currentProgress?.id || Math.random(),
+        userId: parseInt(Cookies.get('userId') || '0'),
+        goalId: goalId,
+        completedDays: (currentProgress?.completedDays || 0) + 1,
+        lastCompletionDate: today,
+        streak: currentProgress?.lastCompletionDate ? 
+          (new Date(currentProgress.lastCompletionDate).toDateString() === new Date(Date.now() - 86400000).toDateString() ? 
+            currentProgress.streak + 1 : 1) : 1
+      };
 
-        // Zavoláme POST /api/progress/:goalId/complete
-        const res = await fetch(`http://localhost:3001/api/goals/progress/${goalId}/complete`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        if (!res.ok) {
-          throw new Error("Failed to complete daily tasks");
-        }
-        // Vrátí aktualizovaný záznam progressu
-        const updatedProgress: Progress = await res.json();
-
-        // Pokud progress pro goalId neexistoval, přidáme nový.
-        // Pokud existoval, aktualizujeme.
-        setProgress((prev) => {
-          const index = prev.findIndex((p) => p.goalId === goalId);
+      // Pokud jsme offline, uložíme změny lokálně
+      if (isNetworkOffline) {
+        // Aktualizujeme lokální stav
+        setProgress(prev => {
+          const index = prev.findIndex(p => p.goalId === goalId);
           if (index === -1) {
             return [...prev, updatedProgress];
           }
@@ -287,38 +468,110 @@ const DashboardPage: React.FC = () => {
           newProgressArray[index] = updatedProgress;
           return newProgressArray;
         });
-      } catch (error) {
-        console.error("Error completing daily tasks:", error);
-      }
-    },
-    []
-  );
 
-  // 3) Výpočet celkového duration
+        // Uložíme aktualizovaná data do offline úložiště
+        saveDashboardOffline({
+          goals,
+          progress: progress.map(p => p.goalId === goalId ? updatedProgress : p),
+          userCourses
+        });
+
+        return;
+      }
+      
+      // Online režim - voláme API
+      const token = Cookies.get("token");
+      if (!token) return;
+
+      const res = await fetch(
+        `http://localhost:3001/api/goals/progress/${goalId}/complete`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      
+      if (!res.ok) {
+        throw new Error("Failed to complete daily tasks");
+      }
+      
+      const serverProgress: Progress = await res.json();
+
+      // Aktualizujeme lokální stav
+      setProgress((prev) => {
+        const index = prev.findIndex((p) => p.goalId === goalId);
+        if (index === -1) {
+          return [...prev, serverProgress];
+        }
+        const newProgressArray = [...prev];
+        newProgressArray[index] = serverProgress;
+        return newProgressArray;
+      });
+
+      // Aktualizujeme offline data
+      saveDashboardOffline({
+        goals,
+        progress: progress.map(p => p.goalId === goalId ? serverProgress : p),
+        userCourses
+      });
+    } catch (error) {
+      console.error("Error completing daily tasks:", error);
+    }
+  }, [goals, isNetworkOffline, progress, saveDashboardOffline, userCourses]);
+
+  // Výpočet celkového duration
   const totalDuration = goals.reduce((sum, g) => sum + g.duration, 0);
 
-  // 4) Celkem splněných dnů (completedDays) z progressu
-  const totalCompletedDays = progress.reduce((sum, p) => sum + p.completedDays, 0);
+  // Celkem splněných dnů (completedDays) z progressu
+  const totalCompletedDays = progress.reduce(
+    (sum, p) => sum + p.completedDays,
+    0
+  );
 
-  // 5) Celkové % (celkem splněných dnů / součet duration) * 100
-  const overallProgress = totalDuration > 0 ? (totalCompletedDays / totalDuration) * 100 : 0;
+  // Celkové % (celkem splněných dnů / součet duration) * 100
+  const overallProgress =
+    totalDuration > 0 ? (totalCompletedDays / totalDuration) * 100 : 0;
 
-  // 6) Day Streaks = max(p.streak) z progressu
-  const dayStreak = progress.length > 0 ? Math.max(...progress.map((p) => p.completedDays)) : 0;
-
-  // Funkce pro přechod na detail kurzu
-  const goToCourse = (courseId: number) => {
-    router.push(`/courses/${courseId}`);
-  };
-
-  // Funkce pro přechod na stránku s kurzy
-  const goToCourses = () => {
-    router.push('/courses');
-  };
+  // Day Streaks = max(p.streak) z progressu
+  const dayStreak =
+    progress.length > 0 ? Math.max(...progress.map((p) => p.completedDays)) : 0;
 
   // ====== Render UI ======
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        <div className="bg-gray-800 p-8 rounded-xl shadow-xl">
+          <div className="animate-pulse flex flex-col items-center">
+            <div className="h-12 w-12 bg-purple-600 rounded-full mb-4"></div>
+            <div className="h-4 w-32 bg-gray-700 rounded mb-3"></div>
+            <div className="h-3 w-24 bg-gray-700 rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Pokud jsme offline a nemáme offline data
+  if (isNetworkOffline && !offlineDataAvailable) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
+        <div className="bg-gray-800 p-8 rounded-xl shadow-xl max-w-md text-center">
+          <FontAwesomeIcon icon={faExclamationTriangle} className="text-yellow-500 text-5xl mb-4" />
+          <h2 className="text-2xl font-bold mb-3">Není připojení k internetu</h2>
+          <p className="text-gray-300 mb-6">
+            Pro zobrazení dashboardu potřebujete připojení k internetu nebo mít již dříve načtená data.
+          </p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-5 py-2 bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            Zkusit znovu
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (goals.length === 0) {
@@ -328,12 +581,19 @@ const DashboardPage: React.FC = () => {
           <h2 className="text-3xl font-semibold text-gray-900 dark:text-white mb-4">
             Nemáte žádné cíle
           </h2>
+          {isNetworkOffline && (
+            <div className="mb-4 p-3 bg-yellow-800 rounded-lg text-yellow-200 flex items-center justify-center">
+              <FontAwesomeIcon icon={faWifi} className="mr-2" />
+              Offline režim - některé funkce nejsou dostupné
+            </div>
+          )}
           <p className="text-gray-600 dark:text-gray-300 mb-6">
             Vytvořte si svůj první cíl a začněte svou cestu k úspěchu.
           </p>
           <button
             onClick={() => router.push("/GoalFormPage")}
             className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-700 text-white font-medium rounded-lg shadow-md hover:scale-105 transition-transform duration-200"
+            disabled={isNetworkOffline}
           >
             Vytvořit cíl
           </button>
@@ -343,334 +603,86 @@ const DashboardPage: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col items-center min-h-screen text-white font-sans mb-20 md:mt-20">
-      <div className="w-full max-w-4xl mx-auto p-2">
-        {/* Horní řádek s logem a "U" */}
-        <div className="grid grid-cols-2 items-center">
-          <div className="flex items-center bg-white text-black rounded-full p-1 px-3 justify-self-start">
-            <img
-              src="/images/app-image/marenas-logo-octo.jpg"
-              alt="Logo"
-              className="w-10 h-10 rounded-full mr-2"
-            />
-            <h1 className="text-xl font-bold">EVO</h1>
-          </div>
-            <div className="flex items-center justify-self-end">
-            <Link href="/profile" className="relative group">
-              <div className="bg-gradient-to-r from-white to-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg cursor-pointer transition-transform transform hover:scale-110">
-              <FontAwesomeIcon icon={faUser} className="text-black w-6 h-6" />
-              </div>
-              <div className="absolute top-14 right-0 bg-gray-800 text-white text-sm rounded-lg shadow-md p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              Profile
-              </div>
-            </Link>
-            </div>
-        </div>
+    <>
+      {/* Tato komponenta zajišťuje, že useSearchParams je obaleno v Suspense */}
+      <Suspense fallback={<div>Načítání...</div>}>
+        <SearchParamsWrapper />
+      </Suspense>
 
-        {/* Citát */}
-        <section className="bg-white text-black p-4 rounded-lg w-full text-center my-4">
-          <p className="text-2xl italic px-2">
-            &quot; Dosáhněte vašeho cíle rychleji a úspěšněji. &quot;
-          </p>
-          <p className="mt-2 text-sm">Krotil Matyáš</p>
-        </section>
+      {/* Pozadí */}
+      <div className="fixed inset-0 w-full h-full -z-10">
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: "url('/images/app-image/background.png')",
+            opacity: 1,
+          }}
+        />
+        <div className="absolute inset-0 bg-black/50" />
+          </div>
+
+      <div className="flex flex-col items-center min-h-screen text-white font-sans mb-20 md:mt-20">
+        {/* Offline banner */}
+        {isNetworkOffline && (
+          <div className="w-full max-w-4xl mx-auto mb-4 p-3 bg-yellow-800 rounded-lg text-yellow-200 flex items-center justify-center">
+            <FontAwesomeIcon icon={faWifi} className="mr-2" />
+            Offline režim - některé funkce nejsou dostupné
+          </div>
+        )}
+        
+        {/* Modální okno s motivací */}
+        <MotivationalModal
+          isOpen={showMotivationModal}
+          onClose={closeMotivationModal}
+          quote={motivationalQuote}
+          emoji={currentEmoji}
+        />
+
+        <div className="w-full max-w-4xl mx-auto p-2">
+          {/* Header s logem a profilem */}
+          <Header />
 
         {/* Wrapper s kartami */}
         <div className="flex flex-col items-center space-y-4 my-4 w-full">
-          {/* Goals "kruh" */}
-          <div className="flex gap-4 justify-center w-full">
-            {/* Karta - Goals */}
-            <div className="bg-gray-800 rounded-lg p-4 w-1/2 text-center">
-              <h2 className="text-lg font-semibold">Goals</h2>
-              {/* Kruh s celkovým pokrokem */}
-              <div className="relative flex items-center justify-center mt-4">
-                <svg className="w-24 h-24">
-                  <circle
-                    cx="50%"
-                    cy="50%"
-                    r="45%"
-                    strokeWidth="10"
-                    fill="none"
-                    stroke="currentColor"
-                    className="text-gray-600"
-                  />
-                  <circle
-                    cx="50%"
-                    cy="50%"
-                    r="45%"
-                    strokeWidth="10"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeDasharray="283"
-                    // spočítáme dashoffset: (283 - (283 * overallProgress)/100)
-                    strokeDashoffset={283 - (283 * overallProgress) / 100}
-                    strokeLinecap="round"
-                    transform="rotate(-90 47.5 48)"
-                    className="text-purple-500"
-                  />
-                </svg>
-                <span className="absolute text-2xl font-bold text-white">
-                  {overallProgress.toFixed(0)} %
-                </span>
-              </div>
-            </div>
-
-            {/* Karta - Day Streaks */}
-            <div className="bg-gray-800 rounded-lg p-4 w-1/2 text-center">
-              <h2 className="text-lg font-semibold">Day Streaks</h2>
-              <div className="flex justify-center gap-2 mt-4">
-                {/* Tohle je jen vizuální příklad 8 bublin.
-                    Můžeš to nahradit "dayStreak" => a zobrazit jen dayStreak bublin. */}
-                {[...Array(8)].map((_, index) => (
-                  <div
-                    key={index}
-                    className={`w-8 h-8 rounded-full ${
-                      index < dayStreak ? "bg-green-400" : "bg-gray-600"
-                    }`}
-                  ></div>
-                ))}
-              </div>
-              {/* Příklad "procentuálního" progressu pro streak */}
-              <div className="w-full bg-gray-600 rounded-full h-2 mt-4">
-                <div
-                  className="bg-purple-500 h-2 rounded-full"
-                  style={{ width: "70%" }}
-                ></div>
-              </div>
-              <div className="mt-2 text-xl font-bold">
-  {dayStreak}{" "}
-  {dayStreak === 1
-    ? "den v řadě"
-    : dayStreak >= 2 && dayStreak <= 4
-    ? "dny v řadě"
-    : "dní v řadě"}
-</div>
-
-              <button className="mt-4 px-4 py-2 bg-purple-500 text-white rounded">
-                Keep it up!
-              </button>
-            </div>
-          </div>
-
-          {/* Přehled cílů */}
-          <div className="bg-gray-800 rounded-lg p-6 w-full text-center my-6">
-            <h2 className="text-lg font-semibold border-b border-gray-600 pb-2">
-              Moje cíle
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-              {goals.map((goal) => (
-                <div
-                  key={goal.id}
-                  className="bg-gray-700 p-4 rounded-lg text-left"
-                >
-                  <h3 className="text-white font-medium">{goal.goal_name}</h3>
-                  <p className="text-gray-400 text-sm mt-2">
-                    Doba trvání: {goal.duration} dní
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* 
-          <section className="ActualStudyModel w-full">
-            <div className="bg-gray-800 rounded-lg p-4 w-full text-center">
-              <h2 className="text-lg font-semibold border-b border-gray-600 pb-2">
-                Modules in Progress
-              </h2>
-              <p className="font-medium mt-2">Meditation for Success</p>
-              <p className="text-sm text-gray-400">Lekce 2: Concentration</p>
-              <div className="mt-4 p-3 bg-gray-700 rounded-lg">
-                <div className="flex text-center pb-1">
-                  <h3 className="ml-3">#2 Concentration</h3>
-                  <div className="pl-2 text-center flex justify-end ml-auto mr-3">
-                    <FontAwesomeIcon
-                      icon={faClock}
-                      className="text-gray-400 w-[22px]"
-                    />
-                    <h3 className="px-1">8 min</h3>
-                  </div>
-                </div>
-                <p className="text-xs text-gray-400 italic">
-                  začátek psaní, pro lekci...
-                </p>
-              </div>
-              <Link
-                href="/educationPage"
-                className="mt-5 px-4 py-2 bg-purple-500 text-white rounded block text-center"
-              >
-                Start Learning
-              </Link>
-              <div className="w-full bg-gray-600 rounded-full h-2 mt-5">
-                <div
-                  className="bg-purple-500 h-2 rounded-full"
-                  style={{ width: "50%" }}
-                ></div>
-              </div>
-              <p className="text-sm text-gray-400 mt-1">50% Completed</p>
-              <div className="mt-5 p-3 bg-gray-700 rounded-lg text-center">
-                <h3 className="font-semibold text-sm text-white">
-                  Upcoming Module:
-                </h3>
-                <p className="text-xs text-gray-400">
-                  Mindfulness for Productivity
-                </p>
-              </div>
-            </div>
-          </section> */}
-   {/* Aktivní kurz */}
-   <div className="w-full bg-gray-800 p-6 rounded-lg">
-            <h2 className="text-xl font-semibold mb-4">Váš aktivní kurz</h2>
-            
-            {activeCourse ? (
-              <div className="space-y-4">
-                <div className="flex justify-between items-start">
-                  <h3 className="text-lg font-medium">{activeCourse.course.name}</h3>
-                  <span className="text-sm text-gray-400">
-                    {activeCourse.progress}% dokončeno
-                  </span>
-                </div>
-                
-                <div className="w-full bg-gray-700 rounded-full h-2">
-                  <div
-                    className="bg-purple-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${activeCourse.progress}%` }}
-                  />
-                </div>
-                
-                <p className="text-sm text-gray-400 line-clamp-2">
-                  {activeCourse.course.description}
-                </p>
-                
-                <div className="flex space-x-3 pt-2">
-                  <button
-                    onClick={() => goToCourse(activeCourse.course.id)}
-                    className="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 px-4 rounded-md transition-colors"
-                  >
-                    Pokračovat v kurzu
-                  </button>
-                  
-                  <button
-                    onClick={goToCourses}
-                    className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition-colors"
-                  >
-                    Změnit kurz
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <p className="mb-4">
-                  Nemáte aktivní kurz. Vyberte si z našich vzdělávacích kurzů.
-                </p>
-                <button
-                  onClick={goToCourses}
-                  className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-300"
-                >
-                  Prohlédnout kurzy
-                </button>
-              </div>
-            )}
-              <div className="mt-5 p-3 bg-gray-700 rounded-lg text-center">
-                <h3 className="font-semibold text-sm text-white">
-                  Upcoming Module:
-                </h3>
-                <p className="text-xs text-gray-400">
-                  Mindfulness for Productivity
-                </p>
-              </div>
-          </div>
-          {/* Sekce kurzů */}
-          <section className="w-full max-w-4xl mx-auto">
-            <div className="bg-gray-800 rounded-lg p-6 w-full text-center my-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-lg font-semibold">Moje kurzy</h2>
-                <button
-                  onClick={() => router.push('/modules')}
-                  className="px-4 py-2 bg-purple-500 rounded-lg hover:bg-purple-600 transition-colors"
-                >
-                  Prozkoumat kurzy
-                </button>
-              </div>
-
-              {userCourses.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-400">Zatím nemáte žádné kurzy</p>
-                  <button
-                    onClick={() => router.push('/modules')}
-                    className="mt-4 px-6 py-2 bg-purple-500 rounded-lg hover:bg-purple-600 transition-colors"
-                  >
-                    Začít s kurzy
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {userCourses.map(({ course, progress }) => (
-                    <div key={course.id} className="bg-gray-700 p-4 rounded-lg">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="text-left font-medium">{course.name}</h3>
-                          <p className="text-sm text-gray-400 mt-1">{course.description}</p>
-                        </div>
-                        {course.image && (
-                          <img
-                            src={course.image}
-                            alt={course.name}
-                            className="w-16 h-16 object-cover rounded-lg ml-4"
-                          />
-                        )}
-                      </div>
-                      <div className="mt-4">
-                        <div className="flex justify-between text-sm text-gray-400 mb-1">
-                          <span>Pokrok</span>
-                          <span>{progress}%</span>
-                        </div>
-                        <div className="w-full bg-gray-600 rounded-full h-2">
-                          <div
-                            className="bg-purple-500 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${progress}%` }}
-                          />
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => router.push(`/courses/${course.id}`)}
-                        className="w-full mt-4 px-4 py-2 bg-purple-500 rounded-lg hover:bg-purple-600 transition-colors"
-                      >
-                        Pokračovat v kurzu
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </section>
-
+            {/* Goals a Day Streaks */}
+            <GoalProgress
+              overallProgress={overallProgress}
+              dayStreak={dayStreak}
+            />
+            {/* Připomenutí cíle */}
+            <GoalReminder
+              goals={goals}
+              progress={progress}
+              activeGoalIndex={activeGoalIndex}
+              onPrevious={navigateToPreviousGoal}
+              onNext={navigateToNextGoal}
+            />
           {/* Dnešní úkoly */}
-          <div className="bg-gray-800 rounded-lg p-6 w-full text-center">
-            <h2 className="text-lg font-semibold border-b border-gray-600 pb-2">
-              📌 Dnešní úkoly
-            </h2>
-            <div className="mt-4">
-              {/* Zde pro každý cíl vykreslíme "GoalTasks",
-                  který zpracuje 3 checkboxy a zavolá handleDailyTasksComplete při dokončení. */}
-              {goals.map((goal) => (
-                <GoalTasks
-                  key={goal.id}
-                  goal={goal}
+            <DailyTasksSection
+              goals={goals}
                   onComplete={handleDailyTasksComplete}
-                />
-              ))}
-            </div>
-            <button className="mt-6 px-6 py-3 bg-purple-500 text-white rounded-lg hover:scale-105 transition-transform">
-              ✅ Dokončit úkoly
-            </button>
-          </div>
+              isOffline={isNetworkOffline}
+            />
+            {/* Seznam cílů */}
+            <GoalList goals={goals} />
 
-       
+          {/* Sekce kurzů */}
+            <CourseSection
+              activeCourse={activeCourse}
+              userCourses={userCourses}
+              isOffline={isNetworkOffline}
+            />
+
+            {/* Motivace a statistika */}
+            <MotivationStats
+              totalCompletedDays={totalCompletedDays}
+              overallProgress={overallProgress}
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
-};
+}
 
 export default DashboardPage;

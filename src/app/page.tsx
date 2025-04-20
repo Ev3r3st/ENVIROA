@@ -13,7 +13,6 @@ import {
   faBrain,
   faBusinessTime,
   faChartLine,
-  faUser,
 } from "@fortawesome/free-solid-svg-icons";
 
 const HomePage: React.FC = () => {
@@ -173,8 +172,8 @@ const HomePage: React.FC = () => {
           <div className="grid md:grid-cols-3 gap-8">
             <div className="rounded-xl shadow-lg p-8 transition-shadow duration-300 hover:shadow-2xl">
               <p className="italic text-gray-700 mb-6">
-                "Tato aplikace změnila způsob, jakým si plánuji cíle. Je
-                jednoduchá na použití a skutečně efektivní."
+                &quot;Tato aplikace změnila způsob, jakým si plánuji cíle. Je
+                jednoduchá na použití a skutečně efektivní.&quot;
               </p>
               <h4 className="text-xl font-bold text-gray-900">
                 - Alex Johnson
@@ -182,15 +181,15 @@ const HomePage: React.FC = () => {
             </div>
             <div className="rounded-xl shadow-lg p-8 transition-shadow duration-300 hover:shadow-2xl">
               <p className="italic text-gray-700 mb-6">
-                "Funkce pro zvyšování produktivity mi pomáhají být efektivní a
-                šetřit čas každý den!"
+                &quot;Funkce pro zvyšování produktivity mi pomáhají být efektivní a
+                šetřit čas každý den!&quot;
               </p>
               <h4 className="text-xl font-bold text-gray-900">- Maria Lopez</h4>
             </div>
             <div className="rounded-xl shadow-lg p-8 transition-shadow duration-300 hover:shadow-2xl">
               <p className="italic text-gray-700 mb-6">
-                "Díky osobnímu rozvoji a vzdělávacím kurzům jsem se naučil
-                spoustu nových věcí a cítím se motivovanější."
+                &quot;Díky osobnímu rozvoji a vzdělávacím kurzům jsem se naučil
+                spoustu nových věcí a cítím se motivovanější.&quot;
               </p>
               <h4 className="text-xl font-bold text-gray-900">
                 - James Carter
