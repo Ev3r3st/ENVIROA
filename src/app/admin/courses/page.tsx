@@ -31,12 +31,10 @@ const AdminCoursesPage = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  // ---------------------------------------------------
-  // 1) FCE pro načtení kurzů
-  // ---------------------------------------------------
+
   const fetchCourses = async () => {
     try {
-      // Získáme token z cookies
+      //  token z cookies
       const token = Cookies.get("token");
       console.log("fetchCourses -> JWT Token:", token);
 
@@ -66,9 +64,6 @@ const AdminCoursesPage = () => {
     }
   };
 
-  // ---------------------------------------------------
-  // 2) FCE pro vytvoření nového kurzu
-  // ---------------------------------------------------
   const handleCreateCourse = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -96,7 +91,7 @@ const AdminCoursesPage = () => {
         throw new Error("Failed to create course");
       }
 
-      // Pokud vše OK:
+      
       console.log("handleCreateCourse -> Kurz vytvořen úspěšně!");
       setNewCourse({ name: '', description: '', image: '' });
       fetchCourses();
@@ -106,9 +101,7 @@ const AdminCoursesPage = () => {
     }
   };
 
-  // ---------------------------------------------------
-  // 3) FCE pro smazání kurzu
-  // ---------------------------------------------------
+
   const handleDeleteCourse = async (id: number) => {
     if (!confirm('Opravdu chcete smazat tento kurz?')) return;
 
@@ -141,24 +134,18 @@ const AdminCoursesPage = () => {
     }
   };
 
-  // ---------------------------------------------------
-  // useEffect pro načtení kurzů při 1. renderu
-  // ---------------------------------------------------
+
   useEffect(() => {
     fetchCourses();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ---------------------------------------------------
-  // UI LOADING
-  // ---------------------------------------------------
+ 
   if (loading) {
     return <div className="flex justify-center items-center h-screen">Načítání...</div>;
   }
 
-  // ---------------------------------------------------
-  // RENDER
-  // ---------------------------------------------------
+ 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
       <div className="max-w-6xl mx-auto">

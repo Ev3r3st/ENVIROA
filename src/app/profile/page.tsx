@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import TabbedGoals from "../../../components/Goal/TabbedGoals";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck, faClock, faTrashAlt, faPencilAlt, faTimes } from '@fortawesome/free-solid-svg-icons';
+import axiosInstance from '@/services/axios';
 
 interface Goal {
   id: number;
@@ -103,31 +104,15 @@ export default function ProfilePage() {
       try {
         // Paralelní načtení profilu, cílů a kurzů
         const [resUser, resGoals, resCourses] = await Promise.all([
-          fetch("http://localhost:3001/api/users/profile", {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }),
-          fetch("http://localhost:3001/api/goals", {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }),
-          fetch("http://localhost:3001/api/courses/my/courses", {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }),
+          axiosInstance.get('/users/profile'),
+          axiosInstance.get('/goals'),
+          axiosInstance.get('/courses/my/courses'),
         ]);
 
-        if (!resUser.ok || !resGoals.ok || !resCourses.ok) {
-          throw new Error("Nepodařilo se načíst profil, cíle nebo kurzy.");
-        }
-
         const [dataUser, dataGoals, dataCourses] = await Promise.all([
-          resUser.json(),
-          resGoals.json(),
-          resCourses.json(),
+          resUser.data,
+          resGoals.data,
+          resCourses.data,
         ]);
 
         setUserData({
@@ -174,25 +159,14 @@ export default function ProfilePage() {
     if (!token) return;
 
     try {
-      const res = await fetch("http://localhost:3001/api/users/profile", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          username: userData.username,
-          email: userData.email,
-          fullname: userData.fullname,
-          address: userData.address,
-        }),
+      const res = await axiosInstance.put('/users/profile', {
+        username: userData.username,
+        email: userData.email,
+        fullname: userData.fullname,
+        address: userData.address,
       });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Nepodařilo se uložit změny.");
-      }
-
+      
+      setUserData(res.data);
       setMessage("Profil byl úspěšně uložen.");
       setMessageType("success");
     } catch (error) {
@@ -219,18 +193,7 @@ export default function ProfilePage() {
     if (!token) return;
 
     try {
-      const res = await fetch(`http://localhost:3001/api/courses/${courseId}/unenroll`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Nepodařilo se odhlásit z kurzu.");
-      }
-
+      await axiosInstance.delete(`/courses/${courseId}/unenroll`);
       // Aktualizovat seznam kurzů po odhlášení
       setUserCourses(userCourses.filter(uc => uc.course.id !== courseId));
       setMessage("Byli jste úspěšně odhlášeni z kurzu.");
@@ -262,18 +225,12 @@ export default function ProfilePage() {
     if (!field) return;
 
     try {
-      const response = await fetch('/api/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [fieldName]: field.value }),
-      });
-
-      if (!response.ok) throw new Error('Failed to update profile');
-
+      await axiosInstance.patch('/profile', { [fieldName]: field.value });
+      
       setEditableFields(fields =>
-        fields.map(f =>
+        fields.map(f => 
           f.name === fieldName
-            ? { ...f, isEditing: false }
+            ? { ...f, value: field.value, isEditing: false }
             : f
         )
       );

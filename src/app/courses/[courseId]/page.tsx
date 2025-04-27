@@ -12,6 +12,7 @@ import {
   removeCourseOffline,
   isOnline
 } from '@/services/offlineStorage';
+import axiosInstance from '@/services/axios';
 
 interface Lesson {
   id: number;
@@ -44,13 +45,11 @@ interface CompletedLesson {
   completedAt: string;
 }
 
-// Komponenta pro tlačítko ukládání kurzu offline
 const OfflineButton = ({ courseId, courseData }: { courseId: string, courseData: Course }) => {
   const [isOffline, setIsOffline] = useState(false);
   const [saving, setSaving] = useState(false);
   
   useEffect(() => {
-    // Kontrola, zda je kurz dostupný offline
     setIsOffline(isCourseAvailableOffline(courseId));
   }, [courseId]);
   
@@ -58,11 +57,9 @@ const OfflineButton = ({ courseId, courseData }: { courseId: string, courseData:
     try {
       setSaving(true);
       if (isOffline) {
-        // Odstraní kurz z offline úložiště
         removeCourseOffline(courseId);
         setIsOffline(false);
       } else {
-        // Uloží kurz do offline úložiště
         await saveCourseOffline(courseId, courseData);
         setIsOffline(true);
       }
@@ -104,12 +101,9 @@ const CoursePage = ({ params }: { params: { courseId: string } }) => {
   const [error, setError] = useState<string | null>(null);
   const [isNetworkOnline, setIsNetworkOnline] = useState(true);
 
-  // Sledování stavu připojení
   useEffect(() => {
-    // Ověření při načtení komponenty
     setIsNetworkOnline(isOnline());
     
-    // Přidání event listenerů
     const handleOnline = () => setIsNetworkOnline(true);
     const handleOffline = () => setIsNetworkOnline(false);
     
@@ -124,19 +118,13 @@ const CoursePage = ({ params }: { params: { courseId: string } }) => {
 
   const fetchUserCourseData = useCallback(async () => {
     try {
-      console.log("Začínám načítat data kurzu");
-      
-      // Kontrola, zda jsme offline
       if (!navigator.onLine) {
-        console.log("Jsme offline, zkusíme načíst data z lokálního úložiště");
         const offlineCourse = await getOfflineCourse(courseId.toString());
         
         if (offlineCourse) {
-          // Máme offline data, použijeme je
-          console.log("Načítám data z offline úložiště");
           setUserCourse({
             id: parseInt(courseId.toString()),
-            progress: 0, // Pro offline režim nemáme aktuální progress
+            progress: 0,
             completedAt: null,
             course: offlineCourse as Course
           });
@@ -146,83 +134,57 @@ const CoursePage = ({ params }: { params: { courseId: string } }) => {
         }
       }
       
-      // Normální online načítání
       const token = Cookies.get('token');
       if (!token) {
-        console.error("Token není k dispozici");
         router.replace('/login');
         return;
       }
 
-      console.log("Volám API endpoint:", `http://localhost:3001/api/courses/${courseId}/progress`);
-      // Načtení detailu kurzu s progress uživatele
-      const courseProgressRes = await fetch(`http://localhost:3001/api/courses/${courseId}/progress`, {
-        headers: {
-          Authorization: `Bearer ${token}`
+      try {
+        const courseProgressRes = await axiosInstance.get(`/courses/${courseId}/progress`);
+        const courseProgressData = courseProgressRes.data;
+        
+        if (!courseProgressData.userCourse) {
+          setError("Neplatný formát dat: chybí userCourse");
+          throw new Error("Neplatný formát dat: chybí userCourse");
         }
-      });
-      
-      console.log("API odpověď status:", courseProgressRes.status);
-      
-      if (!courseProgressRes.ok) {
-        const errorText = await courseProgressRes.text();
-        console.error("Chyba API odpovědi:", errorText);
-        setError(`API chyba: ${courseProgressRes.status} - ${errorText}`);
-        throw new Error(`Nepodařilo se načíst data kurzu: ${courseProgressRes.status} - ${errorText}`);
-      }
-      
-      const courseProgressData = await courseProgressRes.json();
-      console.log("Přijatá data z API:", JSON.stringify(courseProgressData, null, 2));
-      
-      // Kontrola struktury dat
-      if (!courseProgressData.userCourse) {
-        console.error("Chybí userCourse v odpovědi API");
-        setError("Neplatný formát dat: chybí userCourse");
-        throw new Error("Neplatný formát dat: chybí userCourse");
-      }
-      
-      if (!Array.isArray(courseProgressData.completedLessons)) {
-        console.error("completedLessons není pole nebo chybí v odpovědi API");
-        setError("Neplatný formát dat: completedLessons není pole nebo chybí");
-        throw new Error("Neplatný formát dat: completedLessons není pole nebo chybí");
-      }
-      
-      setUserCourse(courseProgressData.userCourse);
-      setCompletedLessons(courseProgressData.completedLessons.map((cl: CompletedLesson) => cl.lessonId));
-      
-      // Najít první nedokončenou lekci a nastavit ji jako aktuální
-      if (courseProgressData.completedLessons.length > 0 && 
-          courseProgressData.userCourse.course.lessons && 
-          courseProgressData.userCourse.course.lessons.length > 0) {
         
-        const completedLessonIds = courseProgressData.completedLessons.map((cl: CompletedLesson) => cl.lessonId);
+        if (!Array.isArray(courseProgressData.completedLessons)) {
+          setError("Neplatný formát dat: completedLessons není pole nebo chybí");
+          throw new Error("Neplatný formát dat: completedLessons není pole nebo chybí");
+        }
         
-        // Najdi první lekci, která není v seznamu dokončených
-        const firstUncompletedLessonIndex = courseProgressData.userCourse.course.lessons.findIndex(
-          (lesson: Lesson) => !completedLessonIds.includes(lesson.id)
-        );
+        setUserCourse(courseProgressData.userCourse);
+        setCompletedLessons(courseProgressData.completedLessons.map((cl: CompletedLesson) => cl.lessonId));
         
-        console.log("První nedokončená lekce na indexu:", firstUncompletedLessonIndex);
-        
-        // Pokud jsou všechny lekce dokončené, zobraz poslední, jinak první nedokončenou
-        setCurrentLessonIndex(firstUncompletedLessonIndex === -1 
-          ? courseProgressData.userCourse.course.lessons.length - 1
-          : firstUncompletedLessonIndex
-        );
-      } else {
-        console.log("Žádné dokončené lekce nebo kurz nemá lekce");
+        if (courseProgressData.completedLessons.length > 0 && 
+            courseProgressData.userCourse.course.lessons && 
+            courseProgressData.userCourse.course.lessons.length > 0) {
+          
+          const completedLessonIds = courseProgressData.completedLessons.map((cl: CompletedLesson) => cl.lessonId);
+          
+          const firstUncompletedLessonIndex = courseProgressData.userCourse.course.lessons.findIndex(
+            (lesson: Lesson) => !completedLessonIds.includes(lesson.id)
+          );
+          
+          setCurrentLessonIndex(firstUncompletedLessonIndex === -1 
+            ? courseProgressData.userCourse.course.lessons.length - 1
+            : firstUncompletedLessonIndex
+          );
+        }
+      } catch (apiError) {
+        console.error('API error:', apiError);
+        setError(`API chyba: ${apiError instanceof Error ? apiError.message : 'Neznámá chyba'}`);
+        throw apiError;
       }
     } catch (error) {
-      console.error('Chyba při načítání dat kurzu:', error);
       setError(`Chyba při načítání: ${error instanceof Error ? error.message : 'Neznámá chyba'}`);
     } finally {
-      console.log("Dokončeno načítání, nastavuji loading=false");
       setLoading(false);
     }
   }, [courseId, router]);
 
   useEffect(() => {
-    console.log("Komponenta kurzu se načítá, courseId:", courseId);
     fetchUserCourseData();
   }, [courseId, fetchUserCourseData]);
 
@@ -236,23 +198,11 @@ const CoursePage = ({ params }: { params: { courseId: string } }) => {
         return;
       }
       
-      const res = await fetch(`http://localhost:3001/api/courses/${courseId}/lesson/${lessonId}/complete`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      const res = await axiosInstance.post(`/courses/${courseId}/lesson/${lessonId}/complete`);
+      const result = res.data;
       
-      if (!res.ok) {
-        throw new Error('Nepodařilo se označit lekci jako dokončenou');
-      }
-      
-      const result = await res.json();
-      
-      // Aktualizovat seznam dokončených lekcí
       setCompletedLessons(prev => [...prev, lessonId]);
       
-      // Aktualizovat celkový progress v kurzu
       if (userCourse) {
         setUserCourse({
           ...userCourse,
@@ -274,18 +224,8 @@ const CoursePage = ({ params }: { params: { courseId: string } }) => {
         return;
       }
       
-      const res = await fetch(`http://localhost:3001/api/courses/${courseId}/complete`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      await axiosInstance.post(`/courses/${courseId}/complete`);
       
-      if (!res.ok) {
-        throw new Error('Nepodařilo se dokončit kurz');
-      }
-      
-      // Přesměrování na stránku s kurzy po dokončení
       router.push('/courses');
     } catch (error) {
       console.error('Chyba při dokončování kurzu:', error);
@@ -345,25 +285,21 @@ const CoursePage = ({ params }: { params: { courseId: string } }) => {
   const allLessonsCompleted = course.lessons.every(lesson => completedLessons.includes(lesson.id));
   const isLastLesson = currentLessonIndex === course.lessons.length - 1;
 
-  // Funkce pro zpracování obsahu lekce - zajišťuje korektní zobrazení odstavců
   const formatLessonContent = (content: string) => {
-    // Pokud obsah již obsahuje HTML značky (např. <p>, <div>), vrátíme ho beze změny
     if (content.includes('<p>') || content.includes('<div>') || content.includes('<br')) {
       return content;
     }
     
-    // Jinak převedeme odstavce na HTML
     return content
-      .split('\n\n') // Rozdělíme podle prázdných řádků
+      .split('\n\n')
       .map(paragraph => `<p>${paragraph}</p>`)
       .join('')
-      .replace(/\n/g, '<br />'); // Jednoduché konce řádků převedeme na <br>
+      .replace(/\n/g, '<br />');
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
-        {/* Hlavička kurzu */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 bg-gray-800 rounded-xl p-5 shadow-lg border border-gray-700">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-500">
@@ -391,7 +327,6 @@ const CoursePage = ({ params }: { params: { courseId: string } }) => {
           </div>
         </div>
 
-        {/* Progress bar */}
         <div className="mb-8 bg-gray-800 rounded-xl p-4 shadow-lg border border-gray-700">
           <div className="flex justify-between text-sm text-gray-300 mb-2">
             <span className="font-medium">Celkový pokrok v kurzu</span>
@@ -406,7 +341,6 @@ const CoursePage = ({ params }: { params: { courseId: string } }) => {
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Seznam lekcí */}
           <div className="lg:col-span-1 space-y-3">
             <div className="sticky top-4">
               <h2 className="text-xl font-semibold mb-4 pl-2 border-l-4 border-purple-500">Obsah kurzu</h2>
@@ -456,7 +390,6 @@ const CoursePage = ({ params }: { params: { courseId: string } }) => {
             </div>
           </div>
           
-          {/* Obsah lekce */}
           <div className="lg:col-span-2">
             <div className="bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-700">
               <div className="mb-6 border-b border-gray-700 pb-4">
@@ -485,7 +418,6 @@ const CoursePage = ({ params }: { params: { courseId: string } }) => {
                 />
               </div>
               
-              {/* Dokončení lekce */}
               <div className="mt-12 border-t border-gray-700 pt-6">
                 <div className="flex items-center mb-6">
                   <button 
@@ -511,7 +443,6 @@ const CoursePage = ({ params }: { params: { courseId: string } }) => {
                   </button>
                 </div>
                 
-                {/* Navigační tlačítka */}
                 <div className="flex flex-wrap md:flex-nowrap justify-between items-center gap-3">
                   <button 
                     onClick={goToPreviousLesson}
@@ -552,7 +483,6 @@ const CoursePage = ({ params }: { params: { courseId: string } }) => {
         </div>
       </div>
       
-      {/* Styly pro lepší zobrazení obsahu lekcí */}
       <style jsx global>{`
         .lesson-content p {
           margin-bottom: 1.5rem;
@@ -618,4 +548,4 @@ const CoursePage = ({ params }: { params: { courseId: string } }) => {
   );
 };
 
-export default CoursePage; 
+export default CoursePage;

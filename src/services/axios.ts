@@ -1,7 +1,11 @@
 import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 /*import { authService } from './auth.service';*/
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+// Načtení API URL z proměnné prostředí nebo fallback na lokální URL
+// POZOR: Railway backend URL je https://evo-backend-production.up.railway.app
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+
+console.log('API URL:', API_URL); // Pro debugging, později odstraníme
 
 interface QueueItem {
   resolve: (token: string) => void;

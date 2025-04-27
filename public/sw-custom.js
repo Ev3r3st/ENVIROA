@@ -7,6 +7,11 @@ self.addEventListener('message', (event) => {
   }
 });
 
+// NÁZEV CACHE PRO VLASTNÍ POTŘEBY (POKUD NĚJAKÉ BUDOU)
+// const CUSTOM_CACHE_NAME = 'evo-custom-cache-v1';
+
+// ODSTRANĚNO: Explicitní cachování offline assetů - řeší Workbox precaching
+/*
 const CACHE_NAME = 'evo-offline-v1';
 const OFFLINE_ASSETS = [
   '/offline.html',
@@ -19,19 +24,31 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME).then((cache) => cache.addAll(OFFLINE_ASSETS))
   );
 });
+*/
 
+// Ponecháno: Čištění starých cache (upravte podle potřeby, pokud máte jiné vlastní cache)
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
-        keys.map((k) =>
-          k !== CACHE_NAME && !k.startsWith('workbox-') ? caches.delete(k) : null
-        )
+        keys.map((k) => {
+          // Nemažeme Workbox cache ani případné jiné vlastní cache, které chceme zachovat
+          if (!k.startsWith('workbox-') /* && k !== CUSTOM_CACHE_NAME */ ) {
+            console.log('Deleting old cache:', k);
+            return caches.delete(k);
+          }
+          return null;
+        })
       )
-    ).then(() => self.clients.claim())
+    ).then(() => {
+      console.log('Claiming clients...');
+      return self.clients.claim(); // Zajistí, že aktivovaný SW převezme kontrolu ihned
+    })
   );
 });
 
+// ODSTRANĚNO: Vlastní fetch listener pro navigaci - řeší Workbox runtimeCaching
+/*
 self.addEventListener('fetch', (event) => {
   if (event.request.mode === 'navigate') {
     event.respondWith(
@@ -39,3 +56,7 @@ self.addEventListener('fetch', (event) => {
     );
   }
 });
+*/
+
+// Zde můžete přidat další vlastní logiku service workera, pokud je potřeba
+// (např. push notifikace, background sync), která nekonfliktuje s Workboxem.

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faClock, faArrowRight, faGraduationCap } from '@fortawesome/free-solid-svg-icons';
+import axiosInstance from '@/services/axios';
 
 interface Lesson {
   id: number;
@@ -45,27 +46,12 @@ const CoursesPage: React.FC = () => {
 
       try {
         // Načtení všech kurzů
-        const allCoursesRes = await fetch('http://localhost:3001/api/courses', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const allCoursesRes = await axiosInstance.get('/courses');
+        const allCoursesData = allCoursesRes.data;
 
         // Načtení kurzů uživatele
-        const myCoursesRes = await fetch('http://localhost:3001/api/courses/my/courses', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!allCoursesRes.ok || !myCoursesRes.ok) {
-          throw new Error('Nepodařilo se načíst kurzy');
-        }
-
-        const [allCoursesData, myCoursesData] = await Promise.all([
-          allCoursesRes.json(),
-          myCoursesRes.json(),
-        ]);
+        const myCoursesRes = await axiosInstance.get('/courses/my/courses');
+        const myCoursesData = myCoursesRes.data;
 
         setCourses(allCoursesData);
         setEnrolledCourses(myCoursesData);
@@ -87,21 +73,8 @@ const CoursesPage: React.FC = () => {
     }
 
     try {
-      const res = await fetch(`http://localhost:3001/api/courses/${courseId}/enroll`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) {
-        throw new Error('Nepodařilo se zapsat do kurzu');
-      }
-
-      // Odpověď není využita, ale zpracujeme ji pro ujištění, že požadavek proběhl úspěšně
-      await res.json();
+      await axiosInstance.post(`/courses/${courseId}/enroll`);
       
-      // Přesměrovat na dashboard
       router.push(`/dashboard?courseId=${courseId}`);
     } catch (error) {
       console.error('Chyba při zápisu do kurzu:', error);
@@ -112,7 +85,6 @@ const CoursesPage: React.FC = () => {
     router.push(`/courses/${courseId}`);
   };
 
-  // Filtrovat dostupné kurzy (ty, ve kterých uživatel není zapsán nebo je dokončil)
   const availableCourses = courses.filter(
     (course) => 
       !enrolledCourses.some(
@@ -121,12 +93,10 @@ const CoursesPage: React.FC = () => {
       )
   );
 
-  // Filtrovat aktivní kurzy (ty, ve kterých je uživatel zapsán, ale nedokončil je)
   const activeCourses = enrolledCourses.filter(
     (userCourse) => !userCourse.completedAt
   );
   
-  // Filtrovat dokončené kurzy
   const completedCourses = enrolledCourses.filter(
     (userCourse) => userCourse.completedAt !== null
   );

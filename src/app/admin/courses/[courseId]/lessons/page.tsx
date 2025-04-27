@@ -67,7 +67,7 @@ const CourseLessonsPage = ({ params }: { params: { courseId: string } }) => {
     }
   };
 
-  // ---------------------------------------------------
+  // --------------------------------------------------
   // 2) Vytvoření lekce v daném kurzu
   // ---------------------------------------------------
   const handleCreateLesson = async (e: React.FormEvent) => {
@@ -98,7 +98,7 @@ const CourseLessonsPage = ({ params }: { params: { courseId: string } }) => {
 
       console.log("handleCreateLesson -> Lekce vytvořena úspěšně!");
       setNewLesson({ title: '', subtitle: '', content: '', duration: 0 });
-      fetchCourse();  // znovu načteme data kurzu vč. nově přidané lekce
+      fetchCourse();  
 
     } catch (error) {
       console.error('Error creating lesson:', error);
@@ -111,15 +111,12 @@ const CourseLessonsPage = ({ params }: { params: { courseId: string } }) => {
   const handleMoveLesson = async (lessonId: number, direction: 'up' | 'down') => {
     if (!course) return;
     
-    // Okamžitá aktualizace UI
+    
     const lessons = [...course.lessons];
     const currentIndex = lessons.findIndex(lesson => lesson.id === lessonId);
-    
     if (currentIndex === -1) return;
     if (direction === 'up' && currentIndex === 0) return;
     if (direction === 'down' && currentIndex === lessons.length - 1) return;
-    
-    // Prohodíme pozice v lokálním stavu pro okamžitou změnu UI
     const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
     const temp = lessons[newIndex];
     lessons[newIndex] = lessons[currentIndex];
@@ -149,34 +146,29 @@ const CourseLessonsPage = ({ params }: { params: { courseId: string } }) => {
       
       if (!response.ok) {
         console.error(`Chyba při změně pořadí lekce: ${response.status}`);
-        fetchCourse(); // V případě chyby znovu načteme aktuální pořadí
+        fetchCourse(); 
         return;
       }
       
       console.log(`Pořadí lekce ${lessonId} úspěšně změněno ${direction === 'up' ? 'nahoru' : 'dolů'}`);
       
-      // Po úspěšné změně pořadí znovu načteme data kurzu ze serveru
-      // Tím zajistíme, že vše je synchronizováno
+      
       fetchCourse();
       
     } catch (error) {
       console.error('Error updating lesson order:', error);
-      // Vrátíme změnu zpět v případě chyby
+      
       fetchCourse();
     }
   };
 
-  // ---------------------------------------------------
-  // useEffect pro automatické načtení
-  // ---------------------------------------------------
+ 
   useEffect(() => {
     fetchCourse();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [courseId]);
 
-  // ---------------------------------------------------
-  // UI: Loading
-  // ---------------------------------------------------
+  
   if (loading || !course) {
     return <div className="flex justify-center items-center h-screen">Načítání...</div>;
   }

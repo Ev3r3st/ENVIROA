@@ -5,6 +5,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
+import axiosInstance from '@/services/axios';
 
 const LoginPage: React.FC = () => {
   const router = useRouter();
@@ -32,8 +33,8 @@ const LoginPage: React.FC = () => {
 
     try {
       const endpoint = isRegistering
-        ? "http://localhost:3001/api/auth/register"
-        : "http://localhost:3001/api/auth/login";
+        ? "/auth/register"
+        : "/auth/login";
 
       // Pro login posíláme pouze username a password
       const requestData = isRegistering
@@ -43,18 +44,8 @@ const LoginPage: React.FC = () => {
             password: formData.password,
           };
 
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Something went wrong");
-      }
-
-      const data = await response.json();
+      const response = await axiosInstance.post(endpoint, requestData);
+      const data = response.data;
 
       if (isRegistering) {
         toast.success("Registration successful!", {
@@ -70,14 +61,15 @@ const LoginPage: React.FC = () => {
           address: "",
         });
       } else {
-        // Uložení tokenu do cookies
-        Cookies.set("token", data.accessToken, {
+        // Přezvětí tokenu - může být buď accessToken nebo access_token podle implementace API
+        const token = data.access_token || data.accessToken;
+        
+        Cookies.set("token", token, {
           expires: 7,
           sameSite: "Strict",
         });
 
-        // Uložení tokenu do localStorage
-        localStorage.setItem("token", data.accessToken);
+        localStorage.setItem("token", token);
 
         toast.success("Login successful!", {
           position: "top-center",
@@ -89,9 +81,10 @@ const LoginPage: React.FC = () => {
         }, 3000);
       }
     } catch (err: unknown) {
-      console.error((err as Error).message);
-      setError((err as Error).message || "An unexpected error occurred");
-      toast.error((err as Error).message || "An unexpected error occurred", {
+      console.error("Login error:", err);
+      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
+      setError(errorMessage);
+      toast.error(errorMessage, {
         position: "top-right",
         autoClose: 3000,
       });

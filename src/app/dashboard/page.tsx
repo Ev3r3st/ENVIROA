@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Cookies from "js-cookie";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faWifi, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
+import axiosInstance from '@/services/axios';
 
 // Import typů a rozhraní
 import { Goal, Progress, UserCourse } from "./interfaces";
@@ -79,16 +80,13 @@ const DashboardPage: React.FC = () => {
   // Funkce pro ukládání dat dashboardu offline
   const saveDashboardOffline = useCallback((dashboardData: DashboardOfflineData) => {
     try {
-      // Nejprve zjistíme, zda už máme uložená data
       const existingDataRaw = localStorage.getItem('offline_dashboard');
       if (existingDataRaw) {
         try {
           const existingData = JSON.parse(existingDataRaw);
           const now = Date.now();
           
-          // Pokud data existují a nejsou starší než 5 minut, neukládáme znovu
           if (existingData.timestamp && (now - existingData.timestamp < 5 * 60 * 1000)) {
-            // Omezíme logování - použijeme sessionStorage pro sledování
             const lastLog = sessionStorage.getItem('dashboard_check_log');
             if (!lastLog || (now - parseInt(lastLog, 10) > 10000)) { // 10 sekund mezi logy
               console.log("Dashboard data jsou již aktuální, neukládáme znovu");
@@ -99,11 +97,9 @@ const DashboardPage: React.FC = () => {
             return;
           }
         } catch {
-          // Ignorujeme chybu při parsování a pokračujeme v ukládání
         }
       }
       
-      // Pokud neexistují data nebo jsou stará, uložíme je
       saveDashboardDataOffline({
         goals: dashboardData.goals || [],
         progress: dashboardData.progress || [],
@@ -116,9 +112,7 @@ const DashboardPage: React.FC = () => {
     }
   }, []);
 
-  // Načítáme seznam cílů a progress z DB
   const fetchAllData = useCallback(async () => {
-    // Omezíme logování načítání - použijeme sessionStorage
     const now = Date.now();
     const lastFetchLog = sessionStorage.getItem('dashboard_fetch_log');
     const shouldLog = !lastFetchLog || (now - parseInt(lastFetchLog, 10) > 10000); // 10 sekund mezi logy
@@ -127,7 +121,6 @@ const DashboardPage: React.FC = () => {
       sessionStorage.setItem('dashboard_fetch_log', now.toString());
     }
     
-    // Nejprve zkontrolujeme, zda jsme offline a máme offline data
     if (!isOnline()) {
       if (shouldLog) console.log("Jsme offline, zkusíme načíst data z lokálního úložiště");
       const offlineData = await getOfflineDashboardData();
@@ -138,7 +131,6 @@ const DashboardPage: React.FC = () => {
         setProgress(offlineData.progress as Progress[]);
         setUserCourses(offlineData.userCourses as UserCourse[]);
         
-        // Nastavení aktivního kurzu
         if (offlineData.userCourses && Array.isArray(offlineData.userCourses) && offlineData.userCourses.length > 0) {
           const activeCourseId = localStorage.getItem('activeCourseId');
           if (activeCourseId) {
@@ -167,7 +159,6 @@ const DashboardPage: React.FC = () => {
       }
     }
     
-    // Pokud jsme online nebo nemáme offline data, načteme z API
       const token = Cookies.get("token");
       if (!token) {
         router.replace("/login");
@@ -176,54 +167,32 @@ const DashboardPage: React.FC = () => {
 
       try {
       if (shouldLog) console.log("Načítám data z API...");
-        // Zavoláme /api/goals, /api/progress a /api/courses/user/:userId
         const [resGoals, resProgress, resUserCourses] = await Promise.all([
-          fetch("http://localhost:3001/api/goals", {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }),
-          fetch("http://localhost:3001/api/goals/progress", {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }),
-          fetch("http://localhost:3001/api/courses/my/courses", {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }),
+          axiosInstance.get('/goals'),
+          axiosInstance.get('/goals/progress'),
+          axiosInstance.get('/courses/my/courses'),
         ]);
 
-        if (!resGoals.ok || !resProgress.ok || !resUserCourses.ok) {
-          throw new Error("Failed to fetch data");
-        }
-
-        const [goalsData, progressData, userCoursesData] = await Promise.all([
-          resGoals.json(),
-          resProgress.json(),
-          resUserCourses.json(),
-        ]);
+        const goalsData = resGoals.data;
+        const progressData = resProgress.data;
+        const userCoursesData = resUserCourses.data;
 
         setGoals(goalsData);
         setProgress(progressData);
         setUserCourses(userCoursesData);
 
-      // Uložíme data pro offline použití
       saveDashboardOffline({
         goals: goalsData,
         progress: progressData,
         userCourses: userCoursesData
       });
 
-        // Pokud máme kurzy, nastavíme první aktivní jako aktivní
         if (userCoursesData.length > 0) {
           const activeCourses = userCoursesData.filter(
             (course: UserCourse) => !course.completedAt
           );
 
           if (activeCourses.length > 0) {
-          // Nastavení aktivního kurzu podle URL parametru
           if (typeof window !== 'undefined') {
             const urlParams = new URLSearchParams(window.location.search);
             const courseIdParam = urlParams.get('courseId');
@@ -250,7 +219,6 @@ const DashboardPage: React.FC = () => {
       } catch (error) {
         console.error("Error fetching data:", error);
       
-      // Pokud online fetch selže, zkusíme načíst offline data
       const offlineData = await getOfflineDashboardData();
       if (offlineData && offlineData.goals && offlineData.progress && offlineData.userCourses) {
         if (shouldLog) console.log("Online fetch selhal, načítám dashboard data z offline úložiště");
@@ -266,9 +234,7 @@ const DashboardPage: React.FC = () => {
     }
   }, [router, saveDashboardOffline]);
 
-  // Detekce offline/online stavu
   useEffect(() => {
-    // Omezení logování offline stavu
     const getLogPermission = () => {
       const now = Date.now();
       const lastOfflineLog = sessionStorage.getItem('offline_state_log');
@@ -281,7 +247,6 @@ const DashboardPage: React.FC = () => {
       return shouldLog;
     };
     
-    // Funkce pro detekci změny online/offline stavu
     const handleOfflineModeChange = (isOffline: boolean) => {
       const shouldLog = getLogPermission();
       if (shouldLog) {
@@ -290,7 +255,6 @@ const DashboardPage: React.FC = () => {
       
       setIsNetworkOffline(isOffline);
       
-      // Pokud jsme znovu online a máme offline data, aktualizujeme
       if (!isOffline && offlineDataAvailable) {
         if (shouldLog) {
           console.log("Jsme zpět online, zkusíme aktualizovat data");
@@ -299,37 +263,29 @@ const DashboardPage: React.FC = () => {
       }
     };
     
-    // Nastav počáteční stav z globálního offline stavu
     const offline = getOfflineMode();
     setIsNetworkOffline(offline);
     console.log(`📱 Počáteční stav připojení v dashboardu: ${offline ? "offline" : "online"}`);
     
-    // Přidáme posluchače na změny offline režimu
     const removeListener = addOfflineModeListener(handleOfflineModeChange);
     
-    // Reset do online režimu pokud jsme na dashboardu
     if (navigator.onLine) {
       setOfflineMode(false);
     }
     
-    // Cleanup při unmount
     return () => {
       removeListener();
     };
   }, [offlineDataAvailable, fetchAllData]);
   
-  // Spustíme načítání dat při prvním načtení
   useEffect(() => {
-    // Udržujeme flag zda jsme již načetli data, abychom předešli zbytečným opakovaným načtením
     let isInitialDataFetchDone = false;
     
     const loadData = async () => {
       if (isInitialDataFetchDone) {
-        // Pokud jsme již načetli data, nebudeme je načítat znovu v rámci jednoho renderování
         return;
       }
       
-      // Omezíme logování inicializace
       const now = Date.now();
       const lastInitLog = sessionStorage.getItem('dashboard_init_log');
       if (!lastInitLog || (now - parseInt(lastInitLog, 10) > 10000)) {
@@ -343,14 +299,11 @@ const DashboardPage: React.FC = () => {
     
     loadData();
     
-    // Cleanup při unmount
     return () => {
-      // Resetujeme flag při unmount
       isInitialDataFetchDone = false;
     };
   }, [fetchAllData]);
 
-  // useEffect pro zobrazení motivačního okna 3× denně
   useEffect(() => {
     // Motivační citáty
     const motivationalQuotes = [
@@ -369,7 +322,6 @@ const DashboardPage: React.FC = () => {
       "✨", "🌟", "💪", "🚀", "🏆", "🔥", "💯", "⭐", "🌈", "🌻",
     ];
 
-    // Funkce pro kontrolu, zda se má zobrazit motivační modální okno
     const checkMotivationModal = () => {
       const today = new Date().toDateString();
       const motivationData = localStorage.getItem("motivationModalData");
@@ -382,25 +334,19 @@ const DashboardPage: React.FC = () => {
         count = data.count;
       }
 
-      // Pokud je nový den nebo jsme ještě nedosáhli 3 zobrazení za den
       if (lastDate !== today || count < 3) {
-        // Resetovat počítadlo, pokud je nový den
         if (lastDate !== today) {
           count = 0;
         }
 
-        // Vyber náhodný motivační citát
         const randomIndex = Math.floor(Math.random() * motivationalQuotes.length);
         setMotivationalQuote(motivationalQuotes[randomIndex]);
 
-        // Vyber náhodné emoji
         const randomEmojiIndex = Math.floor(Math.random() * motivationalEmojis.length);
         setCurrentEmoji(motivationalEmojis[randomEmojiIndex]);
 
-        // Zobraz modální okno
         setShowMotivationModal(true);
 
-        // Aktualizuj počítadlo a ulož informace
         localStorage.setItem(
           "motivationModalData",
           JSON.stringify({
@@ -411,18 +357,15 @@ const DashboardPage: React.FC = () => {
       }
     };
 
-    // Kontroluj modální okno až po načtení dat
     if (!loading) {
       checkMotivationModal();
     }
   }, [loading]);
 
-  // Funkce pro zavření modálního okna
   const closeMotivationModal = () => {
     setShowMotivationModal(false);
   };
 
-  // Funkce pro přepínání mezi cíli
   const navigateToNextGoal = () => {
     if (goals.length > 0) {
       setActiveGoalIndex((prevIndex) =>
@@ -439,7 +382,6 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  // 2) Callback, když se uživatel dokončí denní úkoly pro 1 cíl
   const handleDailyTasksComplete = useCallback(async (goalId: number) => {
     try {
       const currentProgress = progress.find(p => p.goalId === goalId);
@@ -456,9 +398,7 @@ const DashboardPage: React.FC = () => {
             currentProgress.streak + 1 : 1) : 1
       };
 
-      // Pokud jsme offline, uložíme změny lokálně
       if (isNetworkOffline) {
-        // Aktualizujeme lokální stav
         setProgress(prev => {
           const index = prev.findIndex(p => p.goalId === goalId);
           if (index === -1) {
@@ -469,7 +409,6 @@ const DashboardPage: React.FC = () => {
           return newProgressArray;
         });
 
-        // Uložíme aktualizovaná data do offline úložiště
         saveDashboardOffline({
           goals,
           progress: progress.map(p => p.goalId === goalId ? updatedProgress : p),
@@ -479,27 +418,13 @@ const DashboardPage: React.FC = () => {
         return;
       }
       
-      // Online režim - voláme API
       const token = Cookies.get("token");
       if (!token) return;
 
-      const res = await fetch(
-        `http://localhost:3001/api/goals/progress/${goalId}/complete`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const res = await axiosInstance.post(`/goals/progress/${goalId}/complete`);
       
-      if (!res.ok) {
-        throw new Error("Failed to complete daily tasks");
-      }
-      
-      const serverProgress: Progress = await res.json();
+      const serverProgress: Progress = res.data;
 
-      // Aktualizujeme lokální stav
       setProgress((prev) => {
         const index = prev.findIndex((p) => p.goalId === goalId);
         if (index === -1) {
@@ -510,7 +435,6 @@ const DashboardPage: React.FC = () => {
         return newProgressArray;
       });
 
-      // Aktualizujeme offline data
       saveDashboardOffline({
         goals,
         progress: progress.map(p => p.goalId === goalId ? serverProgress : p),
@@ -521,20 +445,16 @@ const DashboardPage: React.FC = () => {
     }
   }, [goals, isNetworkOffline, progress, saveDashboardOffline, userCourses]);
 
-  // Výpočet celkového duration
   const totalDuration = goals.reduce((sum, g) => sum + g.duration, 0);
 
-  // Celkem splněných dnů (completedDays) z progressu
   const totalCompletedDays = progress.reduce(
     (sum, p) => sum + p.completedDays,
     0
   );
 
-  // Celkové % (celkem splněných dnů / součet duration) * 100
   const overallProgress =
     totalDuration > 0 ? (totalCompletedDays / totalDuration) * 100 : 0;
 
-  // Day Streaks = max(p.streak) z progressu
   const dayStreak =
     progress.length > 0 ? Math.max(...progress.map((p) => p.completedDays)) : 0;
 
@@ -553,7 +473,6 @@ const DashboardPage: React.FC = () => {
     );
   }
 
-  // Pokud jsme offline a nemáme offline data
   if (isNetworkOffline && !offlineDataAvailable) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">

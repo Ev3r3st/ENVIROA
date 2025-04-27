@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
+import axiosInstance from '@/services/axios';
 
 const GoalFormPage: React.FC = () => {
   const router = useRouter();
@@ -40,39 +41,24 @@ const GoalFormPage: React.FC = () => {
         throw new Error("No token found in cookies");
       }
 
-      // Kontrola, zda jsou všechna pole vyplněna
-      for (const [key, value] of Object.entries(formData)) {
+     for (const [key, value] of Object.entries(formData)) {
         if (!value) {
           throw new Error(`Field ${key} is missing`);
         }
       }
 
-      const response = await fetch("http://localhost:3001/api/goals", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          goal_name: formData.goal_name,
-          daily_action: formData.daily_action,
-          daily_learning: formData.daily_learning,
-          daily_visualization: formData.daily_visualization,
-          duration: parseInt(formData.duration, 10),
-          reason: formData.reason,
-          destination: formData.destination,
-          new_self: formData.new_self,
-        }),
+      const response = await axiosInstance.post('/goals', {
+        goal_name: formData.goal_name,
+        daily_action: formData.daily_action,
+        daily_learning: formData.daily_learning,
+        daily_visualization: formData.daily_visualization,
+        duration: parseInt(formData.duration),
+        reason: formData.reason,
+        destination: formData.destination,
+        new_self: formData.new_self,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Response error:", errorData);
-        throw new Error("Failed to create goal");
-      }
-
-      const data = await response.json();
-      console.log("Goal created:", data);
+      console.log("Goal created:", response.data);
       router.push("/dashboard");
     } catch (error) {
       console.error("Error:", error);
