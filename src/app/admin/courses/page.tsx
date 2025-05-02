@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
+import axiosInstance from '@/services/axios';
 
 
 interface Course {
@@ -43,17 +44,8 @@ const AdminCoursesPage = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:3001/api/courses', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`fetchCourses: Server returned ${response.status}`);
-      }
-
-      const data = await response.json();
+      const response = await axiosInstance.get<Course[]>('/courses');
+      const data = response.data;
       setCourses(data);
       console.log("fetchCourses -> Kurzy úspěšně načteny:", data);
 
@@ -76,22 +68,8 @@ const AdminCoursesPage = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:3001/api/courses', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(newCourse)
-      });
+      await axiosInstance.post('/courses', newCourse);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("handleCreateCourse -> Chyba při vytváření kurzu:", errorData);
-        throw new Error("Failed to create course");
-      }
-
-      
       console.log("handleCreateCourse -> Kurz vytvořen úspěšně!");
       setNewCourse({ name: '', description: '', image: '' });
       fetchCourses();
@@ -114,18 +92,7 @@ const AdminCoursesPage = () => {
         return;
       }
 
-      const response = await fetch(`http://localhost:3001/api/courses/${id}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("handleDeleteCourse -> Chyba při mazání kurzu:", errorData);
-        throw new Error("Failed to delete course");
-      }
+      await axiosInstance.delete(`/courses/${id}`);
 
       console.log(`handleDeleteCourse -> Kurz s ID ${id} úspěšně smazán`);
       fetchCourses();

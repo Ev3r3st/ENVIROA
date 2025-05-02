@@ -4,6 +4,7 @@ import { AppProps } from 'next/app';
 import { useEffect } from 'react';
 import InstallPWA from '../components/InstallPWA';
 import '../app/globals.css';
+import axiosInstance from '@/services/axios';
 
 function MyApp({ Component, pageProps }: AppProps) {
   useEffect(() => {
@@ -23,13 +24,7 @@ function MyApp({ Component, pageProps }: AppProps) {
                 applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
               });
               
-              await fetch('http://localhost:3001/api/notifications/subscribe', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(subscription),
-              });
+              await axiosInstance.post('/notifications/subscribe', subscription);
               
               console.log('Push Notification Subscribed:', subscription);
             }

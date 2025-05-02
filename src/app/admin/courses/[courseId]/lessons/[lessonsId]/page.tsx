@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
+import axiosInstance from '@/services/axios';
 
 // Rozhraní pro Lesson
 interface Lesson {
@@ -37,29 +38,14 @@ export default function EditLessonPage({
       const token = Cookies.get("token");
       if (!token) throw new Error("Token not found in cookies");
 
-      const response = await fetch(
-        `http://localhost:3001/api/courses/lesson/${lessonId}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Error fetching lesson:", errorData);
-        throw new Error("Failed to fetch lesson");
-      }
-
-      const data: Lesson = await response.json();
-      setLesson(data);
+      const response = await axiosInstance.get<Lesson>(`/courses/lesson/${lessonId}`);
+      setLesson(response.data);
 
       // Předvyplnit form
-      setTitle(data.title);
-      setSubtitle(data.subtitle || "");
-      setContent(data.content);
-      setDuration(data.duration);
+      setTitle(response.data.title);
+      setSubtitle(response.data.subtitle || "");
+      setContent(response.data.content);
+      setDuration(response.data.duration);
     } catch (error) {
       console.error("Error fetchLesson:", error);
     } finally {
@@ -74,29 +60,7 @@ export default function EditLessonPage({
       const token = Cookies.get("token");
       if (!token) throw new Error("Token not found in cookies");
 
-      // Sestavení těla requestu s novými hodnotami
-      const response = await fetch(
-        `http://localhost:3001/api/courses/lesson/${lessonId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            title,
-            subtitle,
-            content,
-            duration: Number(duration),
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Error updating lesson:", errorData);
-        throw new Error("Failed to update lesson");
-      }
+      await axiosInstance.put(`/courses/lesson/${lessonId}`, { title, subtitle, content, duration });
 
       console.log("Lesson updated successfully!");
       router.push(`/admin/courses/${courseId}/lessons`);

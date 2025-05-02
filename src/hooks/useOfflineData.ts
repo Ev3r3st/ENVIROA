@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import axiosInstance from '@/services/axios';
 
 interface OfflineDataOptions<T> {
   key: string;
@@ -92,14 +93,12 @@ export function useOfflineCourses() {
   return { data, loading, error };
 }
 
-
 export function useOfflineCourse(courseId: string) {
   return useOfflineData({
     key: `course-${courseId}`,
     fetchData: async () => {
-      const response = await fetch(`http://localhost:3001/api/courses/${courseId}`);
-      if (!response.ok) throw new Error('Nepodařilo se načíst kurz');
-      return response.json();
+      const response = await axiosInstance.get(`/courses/${courseId}`);
+      return response.data;
     },
     validateData: (data) => data && typeof data === 'object' && 'id' in data,
   });
