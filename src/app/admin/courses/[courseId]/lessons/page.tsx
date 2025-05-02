@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
+import axios from 'axios';
 
 interface Lesson {
   id: number;
@@ -19,6 +20,11 @@ interface Course {
   description: string;
   lessons: Lesson[];
 }
+
+// Instance axiosu s API URL z prostředí
+const axiosInstance = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
+});
 
 const CourseLessonsPage = ({ params }: { params: { courseId: string } }) => {
   const router = useRouter();
@@ -46,19 +52,14 @@ const CourseLessonsPage = ({ params }: { params: { courseId: string } }) => {
         return;
       }
 
-      const response = await fetch(`http://localhost:3001/api/courses/${courseId}`, {
+      const response = await axiosInstance.get(`/api/courses/${courseId}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
 
-      if (!response.ok) {
-        throw new Error(`fetchCourse: Server returned ${response.status}`);
-      }
-
-      const data = await response.json();
-      setCourse(data);
-      console.log("fetchCourse -> Kurz načten:", data);
+      setCourse(response.data);
+      console.log("fetchCourse -> Kurz načten:", response.data);
 
     } catch (error) {
       console.error('Error fetching course:', error);
@@ -81,20 +82,11 @@ const CourseLessonsPage = ({ params }: { params: { courseId: string } }) => {
         return;
       }
 
-      const response = await fetch(`http://localhost:3001/api/courses/${courseId}/lessons`, {
-        method: 'POST',
+      await axiosInstance.post(`/api/courses/${courseId}/lessons`, newLesson, {
         headers: {
-          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(newLesson)
+        }
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("handleCreateLesson -> Chyba při vytváření lekce:", errorData);
-        throw new Error("Failed to create lesson");
-      }
 
       console.log("handleCreateLesson -> Lekce vytvořena úspěšně!");
       setNewLesson({ title: '', subtitle: '', content: '', duration: 0 });
@@ -132,26 +124,17 @@ const CourseLessonsPage = ({ params }: { params: { courseId: string } }) => {
       }
       
       // Volání API pro trvalou změnu pořadí
-      const response = await fetch(
-        `http://localhost:3001/api/courses/lesson/${lessonId}/order`,
+      await axiosInstance.put(
+        `/api/courses/lesson/${lessonId}/order`,
+        { direction },
         {
-          method: "PUT",
           headers: {
-            "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ direction }),
+          }
         }
       );
       
-      if (!response.ok) {
-        console.error(`Chyba při změně pořadí lekce: ${response.status}`);
-        fetchCourse(); 
-        return;
-      }
-      
       console.log(`Pořadí lekce ${lessonId} úspěšně změněno ${direction === 'up' ? 'nahoru' : 'dolů'}`);
-      
       
       fetchCourse();
       
