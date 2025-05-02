@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck, faClock, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
 import axiosInstance from '@/services/axios';
+import TabbedGoals from "../../../components/Goal/TabbedGoals";
 
 interface UserData {
   username: string;
@@ -45,6 +46,13 @@ interface UserProfile {
   avatar: string;
 }
 
+// Rozhraní cíle
+interface Goal {
+  id: number;
+  goal_name: string;
+  duration?: number;
+}
+
 export default function ProfilePage() {
   const router = useRouter();
 
@@ -58,6 +66,9 @@ export default function ProfilePage() {
 
   // Stav pro kurzy
   const [userCourses, setUserCourses] = useState<UserCourse[]>([]);
+
+  // Stav pro cíle
+  const [goals, setGoals] = useState<Goal[]>([]);
 
   // Stav pro načítání a zprávy
   const [loading, setLoading] = useState(true);
@@ -75,13 +86,15 @@ export default function ProfilePage() {
 
     const fetchData = async () => {
       try {
-        // Paralelní načtení profilu a kurzů
-        const [resUser, resCourses] = await Promise.all([
+        // Paralelní načtení profilu, cílů a kurzů
+        const [resUser, resGoals, resCourses] = await Promise.all([
           axiosInstance.get('/users/profile'),
+          axiosInstance.get('/goals'),
           axiosInstance.get('/courses/my/courses'),
         ]);
 
         const dataUser = resUser.data;
+        const dataGoals = resGoals.data;
         const dataCourses = resCourses.data;
 
         setUserData({
@@ -91,6 +104,7 @@ export default function ProfilePage() {
           address: dataUser.address || "",
         });
 
+        setGoals(dataGoals);
         setUserCourses(dataCourses);
 
         setProfile({
@@ -331,6 +345,11 @@ export default function ProfilePage() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Seznam cílů + možnost editace */}
+      <div className="min-h-screen w-full mt-8 max-w-xl">
+        <TabbedGoals goals={goals} />
       </div>
 
     </div>
