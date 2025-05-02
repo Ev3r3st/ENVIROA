@@ -3,22 +3,9 @@
 import React, { useState, useEffect } from "react";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
-import TabbedGoals from "../../../components/Goal/TabbedGoals";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck, faClock, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
 import axiosInstance from '@/services/axios';
-
-interface Goal {
-  id: number;
-  goal_name: string;
-  reason: string | null;
-  destination: string | null;
-  new_self: string | null;
-  daily_action: string;
-  daily_learning: string;
-  daily_visualization: string;
-  duration: number;
-}
 
 interface UserData {
   username: string;
@@ -69,9 +56,6 @@ export default function ProfilePage() {
     address: "",
   });
 
-  // Stav pro cíle
-  const [goals, setGoals] = useState<Goal[]>([]);
-
   // Stav pro kurzy
   const [userCourses, setUserCourses] = useState<UserCourse[]>([]);
 
@@ -91,18 +75,14 @@ export default function ProfilePage() {
 
     const fetchData = async () => {
       try {
-        // Paralelní načtení profilu, cílů a kurzů
-        const [resUser, resGoals, resCourses] = await Promise.all([
+        // Paralelní načtení profilu a kurzů
+        const [resUser, resCourses] = await Promise.all([
           axiosInstance.get('/users/profile'),
-          axiosInstance.get('/goals'),
           axiosInstance.get('/courses/my/courses'),
         ]);
 
-        const [dataUser, dataGoals, dataCourses] = await Promise.all([
-          resUser.data,
-          resGoals.data,
-          resCourses.data,
-        ]);
+        const dataUser = resUser.data;
+        const dataCourses = resCourses.data;
 
         setUserData({
           username: dataUser.username || "",
@@ -111,7 +91,6 @@ export default function ProfilePage() {
           address: dataUser.address || "",
         });
 
-        setGoals(dataGoals);
         setUserCourses(dataCourses);
 
         setProfile({
@@ -209,7 +188,7 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-gray-900 flex flex-col items-center py-8 px-4">
       {/* Hlavička s názvem a tlačítkem pro odhlášení */}
       <div className="w-full max-w-xl flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-white">Dashboard / Profil</h1>
+        <h1 className="text-3xl font-bold text-white">Dashboard - Profil</h1>
         <button
           onClick={handleLogout}
           className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded"
@@ -354,10 +333,6 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* Seznam cílů + možnost editace */}
-      <div className="min-h-screen w-full mt-8">
-        <TabbedGoals goals={goals} />
-      </div>
     </div>
   );
 }
