@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 
-// Example images – replace these imports with your actual images
 import heroImage from "../../public/images/FITNESA-phonedesign (1).png";
 import moudulesImage from "../../public/images/modules.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";

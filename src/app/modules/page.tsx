@@ -3,7 +3,6 @@ import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-// filepath: c:\Users\matyk\EVO-APP\FRONTEND\ENVIROA\src\app\modules\page.tsx
 
 
 

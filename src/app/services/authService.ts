@@ -11,6 +11,6 @@ export const login = async (username: string, password: string): Promise<string>
       throw new Error("Login failed");
     }
   
-    return response.text(); // Vrací odpověď jako text
+    return response.text(); 
   };
   

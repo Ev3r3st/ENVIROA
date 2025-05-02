@@ -36,7 +36,6 @@ body {
 /*************************************
  *  background  CSS
  *************************************/
-/* Globální nastavení pro mobilní pozadí */
 
 .bg-mobile {
   background-image: url("/images/app-image/bg-6.jpeg");
@@ -44,7 +43,6 @@ body {
   background-position: center;
 }
 
-/* Pro větší obrazovky (od 1024px a výše) nastavíme jiné pozadí */
 @media (min-width: 1024px) {
   .bg-desktop {
     background-image: url("/images/app-image/motains.png");

@@ -5,7 +5,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 
-// Rozhraní pro Lesson (stejně jako jinde)
+// Rozhraní pro Lesson
 interface Lesson {
   id: number;
   title: string;
@@ -21,15 +21,11 @@ export default function EditLessonPage({
 }) {
   const router = useRouter();
 
-  // IDs převedeme z stringu na number
+ 
   const courseId = parseInt(params.courseId, 10);
   const lessonId = parseInt(params.lessonsId, 10);
-
-  // Lokální stav pro lekci
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
-
-  // Pomocné stavy pro formulář
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
   const [content, setContent] = useState("");
@@ -103,7 +99,6 @@ export default function EditLessonPage({
       }
 
       console.log("Lesson updated successfully!");
-      // Můžete buď přesměrovat zpět k detailu kurzu:
       router.push(`/admin/courses/${courseId}/lessons`);
     } catch (error) {
       console.error("Error handleSave:", error);
@@ -112,7 +107,7 @@ export default function EditLessonPage({
 
   useEffect(() => {
     fetchLesson();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [lessonId]);
 
   // 3) UI stavy

@@ -8,11 +8,8 @@ interface GoalProgressProps {
 }
 
 const GoalProgress: React.FC<GoalProgressProps> = ({ overallProgress, dayStreak }) => {
-  // Výpočet obvodu kruhu pro SVG
   const circumference = 2 * Math.PI * 45; // r=45%
   const progressOffset = circumference - (circumference * overallProgress) / 100;
-
-  // Výpočet progress pro streak (70% je cíl pro 8 dní)
   const streakProgress = Math.min((dayStreak / 8) * 100, 100);
 
   return (

@@ -1,11 +1,10 @@
-// Základní typy pro data
+// l
 interface OfflineData<T> {
   timestamp: number;
   data: T;
-  version: number; // Přidáme verzi pro kontrolu kompatibility
+  version: number; // 
 }
 
-// Typy pro lekce a kurzy
 interface Lesson {
   id: number;
   title: string;
@@ -35,7 +34,6 @@ interface DashboardData {
 const CURRENT_DATA_VERSION = 1;
 const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minut
 
-// Pomocná funkce pro řízení logování
 function shouldLog(storageKey: string, throttleMs: number = 10000): boolean {
   if (typeof window === 'undefined') return false;
   
@@ -50,23 +48,19 @@ function shouldLog(storageKey: string, throttleMs: number = 10000): boolean {
   return shouldLog;
 }
 
-// Funkce pro kontrolu, zda je potřeba synchronizace
 function needsSync(timestamp: number | undefined): boolean {
   if (!timestamp) return true;
   return Date.now() - timestamp > SYNC_INTERVAL;
 }
 
-// Funkce pro uložení kurzu do offline úložiště
 export async function saveCourseOffline(courseId: string, courseData: Course): Promise<void> {
   try {
-    // Ukládáme data s časovým razítkem pro kontrolu aktuálnosti
     const data: OfflineData<Course> = {
       timestamp: Date.now(),
       data: courseData,
       version: CURRENT_DATA_VERSION
     };
     
-    // Ukládáme do localStorage (jednodušší implementace než IndexedDB)
     localStorage.setItem(`offline_course_${courseId}`, JSON.stringify(data));
     
     if (shouldLog('save_course_log')) {
@@ -80,7 +74,6 @@ export async function saveCourseOffline(courseId: string, courseData: Course): P
   }
 }
 
-// Funkce pro načtení kurzu z offline úložiště
 export async function getOfflineCourse(courseId: string): Promise<Course | null> {
   try {
     const dataString = localStorage.getItem(`offline_course_${courseId}`);
@@ -88,7 +81,6 @@ export async function getOfflineCourse(courseId: string): Promise<Course | null>
     
     const data: OfflineData<Course> = JSON.parse(dataString);
     
-    // Kontrola, zda data nejsou příliš stará (30 dní)
     const isExpired = Date.now() - data.timestamp > 30 * 24 * 60 * 60 * 1000;
     if (isExpired) {
       localStorage.removeItem(`offline_course_${courseId}`);
@@ -102,17 +94,14 @@ export async function getOfflineCourse(courseId: string): Promise<Course | null>
   }
 }
 
-// Funkce pro kontrolu, zda je kurz dostupný offline
 export function isCourseAvailableOffline(courseId: string): boolean {
   return localStorage.getItem(`offline_course_${courseId}`) !== null;
 }
 
-// Funkce pro odstranění offline kurzu
 export function removeCourseOffline(courseId: string): void {
   localStorage.removeItem(`offline_course_${courseId}`);
 }
 
-// Funkce pro získání seznamu všech offline kurzů
 export function getAllOfflineCourses(): string[] {
   const offlineCourses: string[] = [];
   for (let i = 0; i < localStorage.length; i++) {
@@ -124,23 +113,19 @@ export function getAllOfflineCourses(): string[] {
   return offlineCourses;
 }
 
-// Funkce pro uložení dat dashboardu offline
 export async function saveDashboardDataOffline(data: DashboardData): Promise<void> {
   try {
-    // Přidáme timestamp poslední synchronizace
     const dataToSave = {
       ...data,
       lastSyncTimestamp: Date.now()
     };
 
-    // Vytvoříme offline data s časovým razítkem a verzí
     const offlineData: OfflineData<DashboardData> = {
       timestamp: Date.now(),
       data: dataToSave,
       version: CURRENT_DATA_VERSION
     };
     
-    // Uložíme do localStorage
     localStorage.setItem('offline_dashboard', JSON.stringify(offlineData));
     
     if (shouldLog('dashboard_save_log')) {
@@ -154,7 +139,7 @@ export async function saveDashboardDataOffline(data: DashboardData): Promise<voi
   }
 }
 
-// Funkce pro načtení dat dashboardu z offline úložiště
+// Funkce načtení dat dashboardu z offline úložiště
 export async function getOfflineDashboardData(): Promise<DashboardData | null> {
   try {
     const dataString = localStorage.getItem('offline_dashboard');
@@ -187,8 +172,8 @@ export function isOnline(): boolean {
   return navigator.onLine && !getOfflineMode();
 }
 
-// Funkce na ping serveru pro skutečnou kontrolu připojení
-export async function checkServerConnection(url: string = "http://localhost:3001/api/health"): Promise<boolean> {
+// Funkceping serveru pro skutečnou kontrolu připojení
+export async function checkServerConnection(url: string = `${process.env.NEXT_PUBLIC_API_URL}/health`): Promise<boolean> {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);
@@ -209,11 +194,9 @@ export async function checkServerConnection(url: string = "http://localhost:3001
   }
 }
 
-// Nastavení offline/online stavu napříč celou aplikací
 let _isOfflineMode = false;
 const offlineListeners: Array<(isOffline: boolean) => void> = [];
 
-// Funkce pro nastavení offline režimu
 export function setOfflineMode(offline: boolean, force: boolean = false): void {
   if (_isOfflineMode === offline && !force) return;
 
@@ -225,7 +208,6 @@ export function setOfflineMode(offline: boolean, force: boolean = false): void {
   offlineListeners.forEach(listener => listener(offline));
   localStorage.setItem('app_offline_mode', offline ? 'true' : 'false');
   
-  // Při přechodu do online režimu zkontrolujeme potřebu synchronizace
   if (!offline) {
     const dashboardData = localStorage.getItem('offline_dashboard');
     if (dashboardData) {
@@ -234,14 +216,12 @@ export function setOfflineMode(offline: boolean, force: boolean = false): void {
         if (shouldLog('sync_check_log')) {
           console.log('Je potřeba synchronizovat data s serverem');
         }
-        // Zde můžeme vyvolat událost pro synchronizaci
         offlineListeners.forEach(listener => listener(false));
       }
     }
   }
 }
 
-// Funkce pro získání aktuálního offline stavu
 export function getOfflineMode(): boolean {
   const storedMode = localStorage.getItem('app_offline_mode');
   if (storedMode !== null) {
@@ -252,7 +232,6 @@ export function getOfflineMode(): boolean {
   return _isOfflineMode;
 }
 
-// Funkce pro přidání posluchače na změny offline režimu
 export function addOfflineModeListener(listener: (isOffline: boolean) => void): () => void {
   offlineListeners.push(listener);
   return () => {
@@ -263,7 +242,6 @@ export function addOfflineModeListener(listener: (isOffline: boolean) => void): 
   };
 }
 
-// Inicializace event listenerů pro online/offline stav
 if (typeof window !== 'undefined') {
   const storedMode = localStorage.getItem('app_offline_mode');
   _isOfflineMode = storedMode === 'true';

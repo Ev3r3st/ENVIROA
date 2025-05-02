@@ -13,19 +13,16 @@ function MyApp({ Component, pageProps }: AppProps) {
           const registration = await navigator.serviceWorker.register('/sw.js');
           console.log('Service Worker registrován:', registration);
 
-          // Požádání o povolení notifikací
           if ('Notification' in window) {
             const permission = await Notification.requestPermission();
             if (permission === 'granted') {
               console.log('Notifikace povoleny');
               
-              // Registrace push notifikací
               const subscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
               });
               
-              // Odeslání subscription na server
               await fetch('http://localhost:3001/api/notifications/subscribe', {
                 method: 'POST',
                 headers: {
@@ -42,14 +39,12 @@ function MyApp({ Component, pageProps }: AppProps) {
         }
       });
 
-      // Kontrola aktualizací Service Workeru
       window.addEventListener('controllerchange', () => {
         console.log('Service Worker byl aktualizován');
       });
     }
   }, []);
 
-  // Testovací notifikace po 5 sekundách
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
       setTimeout(() => {

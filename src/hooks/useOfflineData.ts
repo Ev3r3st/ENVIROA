@@ -25,7 +25,7 @@ export function useOfflineData<T>({ key, fetchData, validateData }: OfflineDataO
   useEffect(() => {
     async function loadData() {
       try {
-        // Nejprve zkusíme načíst data z localStorage
+       
         const cachedData = localStorage.getItem(key);
         if (cachedData) {
           const parsed = JSON.parse(cachedData) as T;
@@ -35,10 +35,10 @@ export function useOfflineData<T>({ key, fetchData, validateData }: OfflineDataO
           }
         }
 
-        // Pak zkusíme získat aktuální data ze serveru
+        
         const freshData = await fetchData();
         
-        // Uložíme nová data do localStorage
+        
         localStorage.setItem(key, JSON.stringify(freshData));
         
         setData(freshData);
@@ -72,7 +72,7 @@ export function useOfflineCourses() {
   useEffect(() => {
     const loadOfflineCourses = async () => {
       try {
-        // Načtení kurzů z IndexedDB nebo localStorage
+        
         const offlineCourses = await localStorage.getItem('offlineCourses');
         if (offlineCourses) {
           setData(JSON.parse(offlineCourses));
@@ -92,7 +92,7 @@ export function useOfflineCourses() {
   return { data, loading, error };
 }
 
-// Příklad použití pro konkrétní kurz:
+
 export function useOfflineCourse(courseId: string) {
   return useOfflineData({
     key: `course-${courseId}`,

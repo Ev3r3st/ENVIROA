@@ -12,7 +12,6 @@ interface GoalTasksProps {
 const GoalTasks: React.FC<GoalTasksProps> = ({ goal, onComplete, isOffline }) => {
   const tasksRef = useRef<Task[]>([]);
   const [tasks, setTasks] = useState<Task[]>(() => {
-    // Zkusíme načíst uložené úkoly z localStorage
     if (typeof window !== 'undefined') {
       const savedTasks = localStorage.getItem(`goal_tasks_${goal.id}`);
       if (savedTasks) {
@@ -22,7 +21,6 @@ const GoalTasks: React.FC<GoalTasksProps> = ({ goal, onComplete, isOffline }) =>
       }
     }
     
-    // Pokud nejsou uložené, vrátíme výchozí stav
     const defaultTasks = [
       { id: 1, name: goal.daily_action, completed: false },
       { id: 2, name: goal.daily_learning, completed: false },
@@ -32,7 +30,6 @@ const GoalTasks: React.FC<GoalTasksProps> = ({ goal, onComplete, isOffline }) =>
     return defaultTasks;
   });
 
-  // Ukládáme stav do localStorage při každé změně
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (typeof window !== 'undefined') {
@@ -43,9 +40,7 @@ const GoalTasks: React.FC<GoalTasksProps> = ({ goal, onComplete, isOffline }) =>
     return () => clearTimeout(timeoutId);
   }, [tasks, goal.id]);
 
-  // Kontrola dokončení všech úkolů
   useEffect(() => {
-    // Pokud se změnily úkoly a všechny jsou dokončené
     const allDone = tasks.every((task) => task.completed);
     if (allDone && !tasksEqual(tasks, tasksRef.current)) {
       tasksRef.current = [...tasks];
@@ -53,7 +48,6 @@ const GoalTasks: React.FC<GoalTasksProps> = ({ goal, onComplete, isOffline }) =>
     }
   }, [tasks, goal.id, onComplete]);
 
-  // Pomocná funkce pro porovnání polí úkolů
   const tasksEqual = (tasks1: Task[], tasks2: Task[]): boolean => {
     if (tasks1.length !== tasks2.length) return false;
     return tasks1.every((task, index) => 
@@ -62,7 +56,6 @@ const GoalTasks: React.FC<GoalTasksProps> = ({ goal, onComplete, isOffline }) =>
     );
   };
 
-  // Přepínání stavu konkrétního tasku
   const toggleTaskCompletion = useCallback((taskId: number) => {
     setTasks(prevTasks => 
       prevTasks.map(t =>
@@ -71,13 +64,11 @@ const GoalTasks: React.FC<GoalTasksProps> = ({ goal, onComplete, isOffline }) =>
     );
   }, []);
 
-  // Výpočet lokálního progressu (3 checkboxy => 0%, 33%, 66%, 100%)
   const completedCount = tasks.filter((t) => t.completed).length;
   const totalTasks = tasks.length;
   const progressPercent = (completedCount / totalTasks) * 100;
   const isCompleted = progressPercent === 100;
 
-  // Definice emoji pro jednotlivé typy úkolů
   const emojiMap = {
     1: { completed: "✅", notCompleted: "💪🏼" },
     2: { completed: "✅", notCompleted: "📚" },

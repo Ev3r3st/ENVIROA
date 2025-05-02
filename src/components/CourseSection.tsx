@@ -10,7 +10,6 @@ interface Course {
     title: string;
     description: string;
   }[];
-  // přidejte další potřebné vlastnosti
 }
 
 interface CourseSectionProps {

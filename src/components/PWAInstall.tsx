@@ -12,7 +12,6 @@ export default function PWAInstall() {
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: BeforeInstallPromptEvent) => {
-      // Neblokujeme výchozí chování
       setInstallPrompt(e);
       console.log('PWA je připravena k instalaci');
     };
@@ -23,7 +22,6 @@ export default function PWAInstall() {
       console.log('PWA byla úspěšně nainstalována');
     });
 
-    // Kontrola, zda je PWA již nainstalována
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setIsInstalled(true);
       console.log('PWA je již nainstalována');
@@ -58,7 +56,6 @@ export default function PWAInstall() {
     setInstallPrompt(null);
   };
 
-  // Pokud je PWA již nainstalována nebo není k dispozici instalační prompt, nezobrazujeme tlačítko
   if (!installPrompt || isInstalled) {
     return null;
   }

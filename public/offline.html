@@ -86,21 +86,21 @@
 
     <script>
         function goToDashboard() {
-            // Pokus o přesměrování na dashboard s force reload
+           
             window.location.replace('/dashboard');
             
-            // Záložní varianta - pokud replace nefunguje
+            
             setTimeout(() => {
                 window.location.href = '/dashboard';
             }, 100);
         }
 
         function retryConnection() {
-            // Zkusíme znovu načíst původní stránku
+          
             window.location.reload();
         }
 
-        // Kontrola, zda jsme online
+        
         window.addEventListener('online', function() {
             retryConnection();
         });
