@@ -52,7 +52,7 @@ const CourseLessonsPage = ({ params }: { params: { courseId: string } }) => {
         return;
       }
 
-      const response = await axiosInstance.get(`/api/courses/${courseId}`, {
+      const response = await axiosInstance.get(`/courses/${courseId}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -82,7 +82,7 @@ const CourseLessonsPage = ({ params }: { params: { courseId: string } }) => {
         return;
       }
 
-      await axiosInstance.post(`/api/courses/${courseId}/lessons`, newLesson, {
+      await axiosInstance.post(`/courses/${courseId}/lessons`, newLesson, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -125,7 +125,7 @@ const CourseLessonsPage = ({ params }: { params: { courseId: string } }) => {
       
       // Volání API pro trvalou změnu pořadí
       await axiosInstance.put(
-        `/api/courses/lesson/${lessonId}/order`,
+        `/courses/lesson/${lessonId}/order`,
         { direction },
         {
           headers: {
