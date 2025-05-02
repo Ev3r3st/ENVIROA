@@ -108,7 +108,7 @@ const CourseSection: React.FC<CourseSectionProps> = ({ activeCourse, userCourses
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-lg font-semibold">Moje kurzy</h2>
               <button
-                onClick={() => router.push("/modules")}
+                onClick={() => router.push("/courses")}
                 className="px-4 py-2 bg-purple-500 rounded-lg hover:bg-purple-600 transition-colors"
               >
                 Prozkoumat kurzy
@@ -119,7 +119,7 @@ const CourseSection: React.FC<CourseSectionProps> = ({ activeCourse, userCourses
               <div className="text-center py-8">
                 <p className="text-gray-400">Zatím nemáte žádné kurzy</p>
                 <button
-                  onClick={() => router.push("/modules")}
+                  onClick={() => router.push("/courses")}
                   className="mt-4 px-6 py-2 bg-purple-500 rounded-lg hover:bg-purple-600 transition-colors"
                 >
                   Začít s kurzy
