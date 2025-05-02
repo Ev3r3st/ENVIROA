@@ -3,8 +3,9 @@
 
 import React, { useState, useEffect } from "react";
 import Cookies from "js-cookie";
+import axiosInstance from '@/services/axios';
 
-// Definice rozhraní (typu) cíle
+
 interface Goal {
   id: number;
   goal_name: string;
@@ -17,11 +18,11 @@ interface Goal {
   duration?: number;
 }
 
-// Props pro komponentu GoalEdit
+
 interface GoalEditProps {
-  goalId: number; // ID cíle, který chceme editovat
-  onGoalUpdated?: (updatedGoal: Goal) => void; // Callback po úspěšné aktualizaci
-  onClose?: () => void; // Volitelný callback pro zavření (pokud to budeš mít v modálu)
+  goalId: number; 
+  onGoalUpdated?: (updatedGoal: Goal) => void; 
+  onClose?: () => void; 
 }
 
 export default function GoalEdit({ goalId, onGoalUpdated, onClose }: GoalEditProps) {
@@ -42,21 +43,11 @@ export default function GoalEdit({ goalId, onGoalUpdated, onClose }: GoalEditPro
 
     const fetchGoal = async () => {
       try {
-        const res = await fetch(`http://localhost:3001/api/goals/${goalId}`, {
-          // Pokud máš v controlleru route "/goals/:goalId" na GET
-          // Je možné, že to je "/api/goals/:goalId" (podle toho, jak to máš nastavené)
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!res.ok) {
-          throw new Error("Nepodařilo se načíst vybraný cíl.");
-        }
-        const data = await res.json();
-        setGoalData(data);
+        const response = await axiosInstance.get<Goal>(`/goals/${goalId}`);
+        setGoalData(response.data);
       } catch (error: any) {
-        setMessage(error.message);
+        const msg = error.response?.data?.message || error.message || 'Nepodařilo se načíst vybraný cíl.';
+        setMessage(msg);
         setMessageType("error");
       } finally {
         setLoading(false);
@@ -66,7 +57,7 @@ export default function GoalEdit({ goalId, onGoalUpdated, onClose }: GoalEditPro
     fetchGoal();
   }, [goalId]);
 
-  // Změna hodnot ve formuláři
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -87,29 +78,15 @@ export default function GoalEdit({ goalId, onGoalUpdated, onClose }: GoalEditPro
     }
 
     try {
-      const res = await fetch(`http://localhost:3001/api/goals/${goalId}`, {
-        // Stejná poznámka ohledně "/api/goals" vs "/goals"
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(goalData),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Nepodařilo se upravit cíl.");
-      }
-
-      const updatedGoal = await res.json();
+      const response = await axiosInstance.put<Goal>(`/goals/${goalId}`, goalData);
+      const updatedGoal = response.data;
       setGoalData(updatedGoal);
       setMessage("Cíl byl úspěšně upraven.");
       setMessageType("success");
       if (onGoalUpdated) onGoalUpdated(updatedGoal);
-    
     } catch (error: any) {
-      setMessage(error.message);
+      const msg = error.response?.data?.message || error.message || 'Nepodařilo se upravit cíl.';
+      setMessage(msg);
       setMessageType("error");
     }
   };
